@@ -1,0 +1,19 @@
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# banco de dados local
+*.db
+
+# variaveis de ambiente
+.env
+
+# editor
+.vscode/
+.idea/
+
+# arquivos de entrega/zip
+*.zip
