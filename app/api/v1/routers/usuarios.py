@@ -1,85 +1,112 @@
-import hashlib
+"""rotas de usuarios"""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.database.conexao import pegar_sessao
-from app.models.inscricao import Inscricao
-from app.models.usuario import Usuario
-from app.schemas.usuario import UsuarioAtualizar, UsuarioCriar, UsuarioResposta
+from app.database.database import get_db
+from app.models.models import Usuario
+
 
 router = APIRouter(prefix="/usuarios", tags=["Usuários"])
 
 
-def gerar_hash_senha(senha: str) -> str:
-    # por enquanto é só um hash simples, na segunda entrega isso vira bcrypt com jwt
-    return hashlib.sha256(senha.encode()).hexdigest()
+@router.post(
+    "",
+    status_code=status.HTTP_201_CREATED,
+    summary="Criar usuário",
+    description="Cria um novo usuário no sistema",
+)
+async def criar_usuario(
+    usuario: dict = Body(
+        ...,
+        openapi_examples={
+            "Aluno": {
+                "summary": "Aluno (Participante)",
+                "description": "Preenche dados de um participante padrão",
+                "value": {"nome": "Thiago", "email": "thiago@esuda.edu.br", "senha": "123", "papel": "participante"},
+            },
+            "Professor": {
+                "summary": "Professor (Organizador)",
+                "description": "Preenche dados para perfil organizador",
+                "value": {"nome": "Victor", "email": "victor@esuda.edu.br", "senha": "123", "papel": "organizador"},
+            },
+        },
+    ),
+    db: Session = Depends(get_db),
+):
+    # email é unico
+    for u in db.query(Usuario).all():
+        if u.email == usuario.get("email"):
+            raise HTTPException(status_code=400, detail="E-mail já cadastrado")
 
-
-@router.post("", response_model=UsuarioResposta, status_code=status.HTTP_201_CREATED)
-def criar_usuario(dados: UsuarioCriar, db: Session = Depends(pegar_sessao)):
-    # regra de negocio: o email não pode repetir
-    email_ja_existe = db.query(Usuario).filter(Usuario.email == dados.email).first()
-    if email_ja_existe:
-        raise HTTPException(status_code=400, detail="Já existe um usuário com esse e-mail")
-
-    novo_usuario = Usuario(
-        nome=dados.nome,
-        email=dados.email,
-        senha=gerar_hash_senha(dados.senha),
-        papel=dados.papel
+    novo = Usuario(
+        nome=usuario.get("nome", ""),
+        email=usuario.get("email", ""),
+        senha=usuario.get("senha", ""),
+        papel=usuario.get("papel", "participante"),
     )
-    db.add(novo_usuario)
+    db.add(novo)
     db.commit()
-    db.refresh(novo_usuario)
-    return novo_usuario
+    db.refresh(novo)
+    return {"success": True, "message": "Usuário criado", "data": {"id": novo.id, "nome": novo.nome}}
 
 
-@router.get("", response_model=list[UsuarioResposta])
-def listar_usuarios(skip: int = 0, limit: int = 100, db: Session = Depends(pegar_sessao)):
-    return db.query(Usuario).offset(skip).limit(limit).all()
+@router.get(
+    "",
+    summary="Listar usuários",
+    description="Lista todos os usuários do sistema",
+)
+async def listar_usuarios(db: Session = Depends(get_db)):
+    usuarios = db.query(Usuario).all()
+    return [
+        {"id": u.id, "nome": u.nome, "email": u.email, "papel": u.papel}
+        for u in usuarios
+    ]
 
 
-@router.get("/{usuario_id}", response_model=UsuarioResposta)
-def buscar_usuario(usuario_id: int, db: Session = Depends(pegar_sessao)):
-    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    return usuario
-
-
-@router.put("/{usuario_id}", response_model=UsuarioResposta)
-def atualizar_usuario(usuario_id: int, dados: UsuarioAtualizar, db: Session = Depends(pegar_sessao)):
-    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-
-    # só altera o que foi mandado no json
-    if dados.nome:
-        usuario.nome = dados.nome
-    if dados.senha:
-        usuario.senha = gerar_hash_senha(dados.senha)
-    if dados.papel:
-        usuario.papel = dados.papel
-
-    db.commit()
-    db.refresh(usuario)
-    return usuario
-
-
-@router.delete("/{usuario_id}", status_code=status.HTTP_204_NO_CONTENT)
-def deletar_usuario(usuario_id: int, db: Session = Depends(pegar_sessao)):
-    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
-    if not usuario:
+@router.put(
+    "/{usuario_id}",
+    summary="Atualizar usuário",
+    description="Atualiza os dados de um usuário existente",
+)
+async def atualizar_usuario(
+    usuario_id: int,
+    usuario: dict = Body(
+        ...,
+        openapi_examples={
+            "Atualizar": {
+                "summary": "Dados atualizados",
+                "description": "Atualiza nome e/ou papel do usuário",
+                "value": {"nome": "Novo Nome", "papel": "participante"},
+            }
+        },
+    ),
+    db: Session = Depends(get_db),
+) -> dict:
+    db_usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not db_usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
-    # não deixa excluir usuário que tem inscrição, pra não quebrar o histórico dos eventos
-    tem_inscricao = db.query(Inscricao).filter(Inscricao.usuario_id == usuario_id).first()
-    if tem_inscricao:
-        raise HTTPException(
-            status_code=400,
-            detail="Esse usuário tem inscrições cadastradas, então não pode ser excluído"
-        )
-
-    db.delete(usuario)
+    # só muda o que veio no body
+    if "nome" in usuario:
+        db_usuario.nome = usuario["nome"]
+    if "email" in usuario:
+        db_usuario.email = usuario["email"]
+    if "papel" in usuario:
+        db_usuario.papel = usuario["papel"]
     db.commit()
+    db.refresh(db_usuario)
+    return {"success": True, "message": "Usuário atualizado", "data": {"id": db_usuario.id, "nome": db_usuario.nome}}
+
+
+@router.delete(
+    "/{usuario_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Deletar usuário",
+    description="Remove um usuário do sistema",
+)
+async def deletar_usuario(usuario_id: int, db: Session = Depends(get_db)) -> None:
+    db_usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if db_usuario:
+        db.delete(db_usuario)
+        db.commit()
