@@ -216,12 +216,6 @@ Encontrados ao testar a API localmente. Nenhum bloqueia a demonstração, mas os
 
 7. **`echo=True` no engine** (`app/database/database.py`): todo SQL é impresso no terminal. Comentar se poluir o console.
 
-## Documentação da entrega
-
-- **requisito da disciplina:** `docs/Projetos Disciplina - Desenvolvimento Back End - 1AV (1).txt`
-- **documentação completa:** `docs/Documentacao_Esuda_Certificados.pdf`
-- **guião de demonstração no Swagger:** `Swagger Examples.md`
-- **escopo do MVP:** `app/backlog.md`, `app/criteria_aceite.md`, `app/regras_negocios.md`, `app/matriz_permissoes.md`
 
 ## Referência rápida
 
