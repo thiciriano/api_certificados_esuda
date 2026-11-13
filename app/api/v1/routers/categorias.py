@@ -1,10 +1,14 @@
 """rotas de categorias"""
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.deps import precisa_de_permissao
+from app.core.swagger_presets import EXEMPLO_CATEGORIA, EXEMPLO_CATEGORIA_UPDATE
 from app.database.database import get_db
-from app.models.models import Categoria
+from app.models.models import Categoria, Evento, Usuario
+from app.schemas.schemas import CategoriaCreate, CategoriaOut, CategoriaUpdate, RespostaCategoria
 
 
 router = APIRouter(prefix="/categorias", tags=["Categorias"])
@@ -13,84 +17,95 @@ router = APIRouter(prefix="/categorias", tags=["Categorias"])
 @router.post(
     "",
     status_code=status.HTTP_201_CREATED,
+    response_model=RespostaCategoria,
     summary="Criar categoria",
-    description="Cria uma nova categoria de evento",
+    description="Cria uma nova categoria de evento. Exige perfil de administrador ou organizador.",
 )
 async def criar_categoria(
-    categoria: dict = Body(
-        ...,
-        openapi_examples={
-            "Workshop": {
-                "summary": "Categoria Workshop",
-                "description": "Eventos de curta duração com mão na massa",
-                "value": {"nome": "Workshop Pratico", "descricao": "Eventos praticos"},
-            }
-        },
-    ),
+    categoria: CategoriaCreate = Body(..., openapi_examples=EXEMPLO_CATEGORIA),
+    _: Usuario = Depends(precisa_de_permissao("pode_gerenciar_categoria")),
     db: Session = Depends(get_db),
-):
+) -> RespostaCategoria:
     # nome é unico
-    for c in db.query(Categoria).all():
-        if c.nome == categoria.get("nome"):
-            raise HTTPException(status_code=400, detail="Ja existe categoria com este nome")
+    if db.query(Categoria).filter(Categoria.nome == categoria.nome).first():
+        raise HTTPException(status_code=400, detail="Ja existe categoria com este nome")
 
-    novo = Categoria(nome=categoria.get("nome", ""), descricao=categoria.get("descricao", ""))
+    novo = Categoria(nome=categoria.nome, descricao=categoria.descricao)
     db.add(novo)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()  # nome repetido em corrida
+        raise HTTPException(status_code=400, detail="Ja existe categoria com este nome")
     db.refresh(novo)
-    return {"success": True, "message": "Categoria criada", "data": {"id": novo.id, "nome": novo.nome}}
+    return RespostaCategoria(message="Categoria criada", data=novo)
 
 
 @router.get(
     "",
+    response_model=list[CategoriaOut],
     summary="Listar categorias",
-    description="Lista todas as categorias do sistema",
+    description="Lista todas as categorias do sistema. Consulta aberta (não exige login).",
 )
-async def listar_categorias(db: Session = Depends(get_db)):
-    categorias = db.query(Categoria).all()
-    return [{"id": c.id, "nome": c.nome, "descricao": c.descricao} for c in categorias]
+async def listar_categorias(db: Session = Depends(get_db)) -> list[CategoriaOut]:
+    return db.query(Categoria).all()
 
 
 @router.put(
     "/{categoria_id}",
+    response_model=RespostaCategoria,
     summary="Atualizar categoria",
-    description="Atualiza os dados de uma categoria existente",
+    description="Atualiza os dados de uma categoria existente. Exige perfil de administrador ou organizador.",
 )
 async def atualizar_categoria(
     categoria_id: int,
-    categoria: dict = Body(
-        ...,
-        openapi_examples={
-            "Atualizar": {
-                "summary": "Categoria atualizada",
-                "description": "Atualiza nome e/ou descricao da categoria",
-                "value": {"nome": "Workshop Advanced", "descricao": "Workshop avançado"},
-            }
-        },
-    ),
+    categoria: CategoriaUpdate = Body(..., openapi_examples=EXEMPLO_CATEGORIA_UPDATE),
+    _: Usuario = Depends(precisa_de_permissao("pode_gerenciar_categoria")),
     db: Session = Depends(get_db),
-) -> dict:
+) -> RespostaCategoria:
     db_categoria = db.query(Categoria).filter(Categoria.id == categoria_id).first()
     if not db_categoria:
         raise HTTPException(status_code=404, detail="Categoria nao encontrada")
 
-    if "nome" in categoria:
-        db_categoria.nome = categoria["nome"]
-    if "descricao" in categoria:
-        db_categoria.descricao = categoria["descricao"]
+    dados = categoria.model_dump(exclude_unset=True)
+
+    if "nome" in dados:
+        nome_ja_usado = (
+            db.query(Categoria)
+            .filter(Categoria.nome == dados["nome"], Categoria.id != categoria_id)
+            .first()
+        )
+        if nome_ja_usado:
+            raise HTTPException(status_code=400, detail="Ja existe categoria com este nome")
+
+    # só muda o que veio no body
+    for campo, valor in dados.items():
+        setattr(db_categoria, campo, valor)
+
     db.commit()
     db.refresh(db_categoria)
-    return {"success": True, "message": "Categoria atualizada", "data": {"id": db_categoria.id, "nome": db_categoria.nome}}
+    return RespostaCategoria(message="Categoria atualizada", data=db_categoria)
 
 
 @router.delete(
     "/{categoria_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Deletar categoria",
-    description="Remove uma categoria do sistema",
+    description="Remove uma categoria do sistema. Exige perfil de administrador ou organizador.",
 )
-async def deletar_categoria(categoria_id: int, db: Session = Depends(get_db)) -> None:
+async def deletar_categoria(
+    categoria_id: int,
+    _: Usuario = Depends(precisa_de_permissao("pode_gerenciar_categoria")),
+    db: Session = Depends(get_db),
+) -> None:
     db_categoria = db.query(Categoria).filter(Categoria.id == categoria_id).first()
-    if db_categoria:
-        db.delete(db_categoria)
-        db.commit()
+    if not db_categoria:
+        raise HTTPException(status_code=404, detail="Categoria nao encontrada")
+
+    # nao deixa apagar categoria que tem evento usando
+    em_uso = db.query(Evento).filter(Evento.categoria_id == categoria_id).first()
+    if em_uso:
+        raise HTTPException(status_code=400, detail="Categoria possui eventos vinculados")
+
+    db.delete(db_categoria)
+    db.commit()

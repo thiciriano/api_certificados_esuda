@@ -5,6 +5,7 @@
 # --- API / web ---
 fastapi>=0.110,<1.0
 uvicorn[standard]>=0.27,<1.0   # servidor; [standard] traz watchfiles (reload) e httptools
+python-multipart>=0.0.9,<1.0   # obrigatorio p/ OAuth2PasswordRequestForm (login, app/api/v1/routers/auth.py)
 
 # --- validacao / config ---
 pydantic>=2.7,<3.0
@@ -12,10 +13,16 @@ pydantic-settings>=2.2,<3.0   # BaseSettings (app/core/config.py)
 email-validator>=2.1,<3.0     # obrigatorio p/ pydantic.EmailStr (app/schemas/schemas.py)
 
 # --- banco de dados ---
-SQLAlchemy>=2.0,<3.0         # models + create_engine (SQLite)
+SQLAlchemy>=2.0,<3.0         # models + create_engine (SQLite local, Postgres no render)
+psycopg2-binary>=2.9,<3.0    # driver do Postgres (so usado em producao)
 
 # --- autenticacao (JWT) ---
 python-jose[cryptography]>=3.3,<4.0   # from jose import jwt (app/core/security.py)
+bcrypt>=4.0,<6.0                      # hash das senhas (app/core/security.py)
+
+# --- testes ---
+pytest>=8.0,<10.0     # roda a suíte: pytest
+httpx>=0.27,<1.0      # TestClient do fastapi usa httpx
 
 # --- utilitarios ---
 requests>=2.31,<3.0          # seed.py
