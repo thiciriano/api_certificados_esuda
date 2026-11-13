@@ -8,7 +8,7 @@ venv/
 # banco de dados local
 *.db
 
-# variaveis de ambiente
+# variaveis de ambiente (nunca versionar o .env de verdade)
 .env
 
 # editor
@@ -17,3 +17,11 @@ venv/
 
 # arquivos de entrega/zip
 *.zip
+
+# backup local da versao da 1AV (nao faz parte do codigo)
+_esudabackup/
+
+# materiais da disciplina (pdf e enunciados, nao fazem parte do codigo)
+docs/Documentacao_Esuda_Certificados.pdf
+docs/Projeto Disciplina*
+docs/Projetos Disciplina*
