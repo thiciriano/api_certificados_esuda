@@ -1,4 +1,6 @@
 """tabelas do banco"""
+from datetime import date
+
 from sqlalchemy import Column, Integer, String, Date, Boolean, Text, ForeignKey, Time
 from sqlalchemy.orm import relationship
 from app.database.database import Base
@@ -10,10 +12,10 @@ class Usuario(Base):
     id = Column(Integer, primary_key=True, index=True)
     nome = Column(String(100), nullable=False)
     email = Column(String(255), unique=True, nullable=False, index=True)
-    senha = Column(String(255), nullable=False)
-    papel = Column(String(50), nullable=False)  # 'participante' ou 'organizador'
+    senha = Column(String(255), nullable=False)  # guarda o hash bcrypt, nunca a senha pura
+    papel = Column(String(50), nullable=False)  # 'participante', 'organizador' ou 'admin'
     is_active = Column(Boolean, default=True)
-    created_at = Column(Date, nullable=True)
+    created_at = Column(Date, nullable=True, default=date.today)
 
     inscricoes = relationship("Inscrição", back_populates="usuario")
     certificados = relationship("Certificado", back_populates="usuario")
