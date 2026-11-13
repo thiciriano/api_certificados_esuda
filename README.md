@@ -1,229 +1,129 @@
 # Esuda Certificados
 
-> **Projeto acadêmico de backend** — trabalho da disciplina de Desenvolvimento Back End (primeira entrega). Tem fins exclusivamente acadêmicos; não é um produto em produção.
+API REST para gerenciamento de **eventos acadêmicos, inscrições e emissão de certificados** da Faculdade ESUDA, evoluída da 1AV para a 2AV com autenticação JWT, autorização por perfil, testes automatizados e deploy em produção.
 
-API REST para gerenciamento de eventos acadêmicos, inscrições e emissão de certificados da instituição.
+- **Problema de negócio:** a instituição controlava eventos e certificados em planilhas e papel, com risco de erro, duplicidade e dificuldade de consulta.
+- **Objetivo:** centralizar cadastro de usuários, categorias, eventos, inscrições e certificados numa API segura, documentada e disponível 24h.
+- **Perfis:** Administrador (tudo), Organizador (gerencia os eventos que criou), Participante (inscreve-se e acompanha o próprio certificado). A matriz completa está em [`app/matriz_permissoes.md`](app/matriz_permissoes.md).
 
 ## Tecnologias
 
-| Camada | Biblioteca |
-|--------|-----------|
-| Framework | FastAPI |
-| Banco / ORM | SQLAlchemy 2.x + SQLite |
-| Validação | Pydantic 2.x |
-| Autenticação | python-jose (JWT) — prepared, ainda não ligada |
-| Servidor | Uvicorn |
+| Camada | Ferramenta |
+| ------ | ---------- |
+| API | Python 3.12 + FastAPI |
+| Banco | SQLite (local) / PostgreSQL (produção via Render) com SQLAlchemy |
+| Auth | JWT (python-jose) + hash de senha bcrypt |
+| Config | pydantic-settings + variáveis de ambiente (`.env`) |
+| Testes | pytest + TestClient (httpx) |
+| Deploy | Render (blueprint `render.yaml`) |
 
-## Requisitos
+## Estrutura de diretórios
 
-- **Python 3.12**
-- Nada além disso: o SQLite já vem com o Python e as tabelas são criadas sozinhas no start (não há migrations para rodar).
+```
+Esuda/
+├── app/
+│   ├── api/v1/
+│   │   ├── api.py                  # junta as rotas sob /api/v1
+│   │   └── routers/                # auth, usuarios, eventos, inscricoes, certificados, categorias
+│   ├── core/
+│   │   ├── config.py               # Settings (variáveis de ambiente)
+│   │   ├── security.py             # hash bcrypt + criar/decodificar JWT
+│   │   ├── deps.py                 # get_current_user, precisa_de_permissao
+│   │   ├── permissions.py          # matriz PERFIS (o que cada papel pode)
+│   │   └── swagger_presets.py      # exemplos de payload pro Swagger
+│   ├── database/database.py        # engine, SessionLocal, get_db
+│   ├── models/models.py            # tabelas (SQLAlchemy)
+│   ├── schemas/schemas.py          # validação de entrada/saída (Pydantic)
+│   ├── main.py                     # sobe a API (create_all sem drop_all)
+│   └── matriz_permissoes.md / regras_negocios.md / criteria_aceite.md
+├── tests/                          # suíte pytest (conftest + 5 arquivos)
+├── docs/relatorio_evolucao_2av.md  # relatório de evolução 1AV → 2AV
+├── run.py                          # python run.py [porta]
+├── seed.py                         # popula o banco com dados de teste
+├── render.yaml                     # blueprint do Render (deploy)
+├── .env.example                    # modelo das variáveis de ambiente
+└── requirements.txt
+```
 
-## Instalação
+## Entidades e relacionamentos
+
+- **Usuario** 1—N **Inscrição**; **Usuario** 1—N **Certificado**
+- **Evento** N—1 **Categoria**; **Evento** 1—N **Inscrição**
+- **Inscrição** 1—1 **Certificado** (uma inscrição gera no máximo um)
+- **Evento.criado_por** → Usuario (define o dono do evento p/ autorização)
+
+## Como rodar locally
 
 ```bash
-# 1. criar o ambiente virtual
-python -m venv .venv
-
-# 2. ativar
-# linux/mac:
-source .venv/bin/activate
-# windows powershell:
-.venv\Scripts\Activate.ps1
-
-# 3. instalar as dependências
+# 1. dependências (use venv)
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-```
 
-## Como rodar
+# 2. variáveis de ambiente
+cp .env.example .env
+# edite o .env: gere a chave com python -c "import secrets; print(secrets.token_hex(32))"
 
-```bash
-# sobe na porta 8000 com reload automático
-python run.py
+# 3. banco (as tabelas são criadas sozinhas no boot, sem drop_all)
+python -c "from app.main import app"   # ou simplesmente suba a API
 
-# ou, em outra porta
-python run.py 8080
+# 4. sobe a API
+python run.py            # http://localhost:8000  (docs em /docs)
 
-# alternativa direta pelo uvicorn
-uvicorn app.main:app --reload
-```
-
-O banco `esuda_certificados.db` é criado automaticamente na pasta do projeto na primeira execução.
-
-### Documentação interativa
-
-| URL | O que é |
-|-----|---------|
-| http://localhost:8000/docs | Swagger UI (clique em **Try it out** para testar) |
-| http://localhost:8000/redoc | ReDoc |
-| http://localhost:8000/openapi.json | Esquema OpenAPI |
-| http://localhost:8000/health | Health check |
-
-Os endpoints de `POST` e `PUT` já vêm com **exemplos prontos** (`openapi_examples`): no Swagger, use o dropdown *Examples* no canto do campo de payload para preencher o JSON com 1 clique.
-
-## Endpoints
-
-São **22 endpoints** — 5 entidades com CRUD completo, mais 2 rotas de raiz.
-
-> ⚠️ **As rotas estão na raiz, sem o prefixo `/api/v1`.** Use `/usuarios`, e **não** `/api/v1/usuarios`. Veja [Problemas conhecidos](#problemas-conhecidos).
-
-| Entidade | Endpoints |
-|----------|-----------|
-| Usuários | `POST /usuarios` · `GET /usuarios` · `PUT /usuarios/{id}` · `DELETE /usuarios/{id}` |
-| Categorias | `POST /categorias` · `GET /categorias` · `PUT /categorias/{id}` · `DELETE /categorias/{id}` |
-| Eventos | `POST /eventos` · `GET /eventos` · `PUT /eventos/{id}` · `DELETE /eventos/{id}` |
-| Inscrições | `POST /inscricoes` · `GET /inscricoes` · `PUT /inscricoes/{id}` · `DELETE /inscricoes/{id}` |
-| Certificados | `POST /certificados` · `GET /certificados` · `PUT /certificados/{id}` · `DELETE /certificados/{id}` |
-| Raiz | `GET /` · `GET /health` |
-
-`DELETE` responde **204** e não devolve corpo.
-
-## Fluxo completo (a ordem importa)
-
-As entidades têm chaves estrangeiras, então crie sempre nesta ordem:
-
-```bash
-B=http://localhost:8000
-
-# 1. categoria (o evento exige uma categoria válida)
-curl -X POST $B/categorias -H 'Content-Type: application/json' \
-  -d '{"nome":"Workshop","descricao":"Eventos Praticos"}'
-
-# 2. usuário
-curl -X POST $B/usuarios -H 'Content-Type: application/json' \
-  -d '{"nome":"Thiago","email":"thiago@esuda.edu.br","senha":"123","papel":"participante"}'
-
-# 3. evento (categoria_id precisa existir)
-curl -X POST $B/eventos -H 'Content-Type: application/json' \
-  -d '{"titulo":"Apresentacao MVP","descricao":"Defesa de ADS","data_evento":"2026-11-10","local":"Auditorio","capacidade":30,"categoria_id":1}'
-
-# 4. inscrição (consome uma vaga)
-curl -X POST $B/inscricoes -H 'Content-Type: application/json' \
-  -d '{"usuario_id":1,"evento_id":1}'
-
-# 5. certificado
-curl -X POST $B/certificados -H 'Content-Type: application/json' \
-  -d '{"inscricao_id":1}'
-```
-
-Respostas de criação usam o envelope `{"success": true, "message": "...", "data": {...}}`. Erros usam `{"detail": "..."}`.
-
-## Regras de negócio
-
-Implementadas e verificadas na API:
-
-| Regra | Onde | Comportamento |
-|-------|------|---------------|
-| E-mail único | `usuarios.py` | `400` se o e-mail já existir |
-| Nome de categoria único | `categorias.py` | `400` se já existir |
-| Título de evento único | `eventos.py` | `400` se já existir |
-| Categoria precisa existir | `eventos.py` | `404` se `categoria_id` não existir |
-| Inscrição duplicada | `inscricoes.py` | `400` se o usuário já estiver inscrito no evento |
-| Sem vagas | `inscricoes.py` | `400` se não houver vaga |
-| Cancelamento devolve vaga | `inscricoes.py` | `PUT` com `status: "cancelada"` devolve 1 vaga |
-| Exclusão em cascata | `inscricoes.py` | Apagar inscrição apaga o certificado junto |
-| Certificado único por inscrição | `certificados.py` | `400` se já foi emitido |
-| Código de certificação | `certificados.py` | Gerado no formato `ESUDA-{id}-{inscricao_id}` |
-
-Ainda **não** implementadas (previstas para a segunda entrega): autenticação JWT, controle de acesso por perfil, validação de data passada e validação de senha mínima.
-
-## Estrutura do projeto
-
-```
-.
-├── run.py                  # sobe o servidor
-├── seed.py                 # script de dados de teste (ver limitações)
-├── requirements.txt
-├── esuda_certificados.db   # banco SQLite (gerado automaticamente)
-└── app/
-    ├── main.py             # app FastAPI; cria as tabelas no start
-    ├── api/v1/
-    │   ├── api.py          # registra as rotas de cada entidade
-    │   └── routers/        # categorias, certificados, eventos,
-    │                       # inscricoes, usuarios
-    ├── core/
-    │   ├── config.py       # settings via pydantic-settings / .env
-    │   ├── security.py     # criação e leitura de token JWT
-    │   ├── deps.py         # dependências de autenticação
-    │   ├── permissions.py  # o que cada papel pode fazer
-    │   └── swagger_presets.py
-    ├── database/
-    │   └── database.py     # engine, SessionLocal, Base, get_db
-    ├── models/
-    │   └── models.py       # tabelas SQLAlchemy
-    ├── schemas/
-    │   └── schemas.py      # schemas Pydantic
-    ├── backlog.md
-    ├── regras_negocios.md
-    ├── matriz_permissoes.md
-    └── criteria_aceite.md
-```
-
-## Scripts auxiliares
-
-### `seed.py`
-
-Popula o banco chamando a API por HTTP, para não digitar tudo no Swagger:
-
-```bash
-# em um terminal, com a API no ar:
-python run.py
-
-# em outro terminal:
+# 5. (opcional) popula dados de teste — pede a senha do admin na hora
 python seed.py
 ```
 
-⚠️ **O `seed.py` está quebrado na versão atual** — ele aponta para `/api/v1`, que não existe (veja abaixo), e não checa o status das respostas, então imprime `✅` mesmo quando nada é criado. Para popular o banco hoje, use o [fluxo em curl](#fluxo-completo-a-ordem-importa) acima ou os exemplos do Swagger.
+O banco local é o arquivo `esuda_certificados.db` (criado automaticamente, não versionado).
 
-Para zerar o banco e começar do zero:
-
-```bash
-rm esuda_certificados.db   # linux/mac
-del esuda_certificados.db  # windows
-python run.py              # recria as tabelas vazias
-```
-
-## Configuração
-
-O `app/core/config.py` lê um arquivo `.env` opcional na raiz (não versionado):
+## Testes
 
 ```bash
-PROJECT_NAME=Esuda Certificados
-JWT_SECRET_KEY=troque-esta-chave
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
+pytest           # roda tudo (47 testes)
+pytest tests/test_auth.py -v   # só um arquivo, verboso
 ```
 
-Mas atenção: **a URL do banco não vem do `.env`.** Ela está fixa em `app/database/database.py` (`sqlite:///./esuda_certificados.db`). As variáveis `POSTGRES_*` do `config.py` existem, mas ainda não são usadas — a troca para PostgreSQL fica para a segunda entrega.
+O `tests/conftest.py` aponta o `DATABASE_URL` para um banco isolado em `/tmp/opencode/` — os testes **não** tocam no banco local nem no de produção.
 
-## Problemas conhecidos
+## Endpoints principais (prefixo `/api/v1`)
 
-Encontrados ao testar a API localmente. Nenhum bloqueia a demonstração, mas os dois primeiros quebram o `seed.py`:
+| Método | Rota | Auth | Descrição |
+| ------ | ---- | ---- | --------- |
+| POST | `/auth/login` | – | Login (OAuth2 form: username = e-mail) → `{access_token, token_type}` |
+| POST | `/usuarios` | – | Auto-cadastro (participante/organizador); admin cria qualquer papel |
+| GET | `/usuarios/me` | Bearer | Usuário autenticado pelo token |
+| GET/PUT/DELETE | `/usuarios/{id}` | Bearer | Gestão de usuários (admin; PUT próprio cadastro também) |
+| GET | `/eventos` | – | Lista eventos (consulta aberta) |
+| POST/PUT/DELETE | `/eventos` | Bearer | CRUD conforme matriz (exclusão só admin) |
+| POST | `/inscricoes` | Bearer | Inscreve o **próprio** usuário (token define o dono) |
+| GET/PUT/DELETE | `/inscricoes/{id}` | Bearer | Listagem e cancelamento conforme dono/vínculo |
+| POST/GET/PUT/DELETE | `/certificados` | Bearer | Emissão e gestão conforme matriz |
+| GET/POST/PUT/DELETE | `/categorias` | Bearer* | *GET aberto; escrita é organizador/admin |
 
-1. **Falta o prefixo `/api/v1`.** Em `app/api/v1/api.py` o router é criado sem prefixo (`APIRouter()`), então as rotas ficam em `/usuarios` em vez de `/api/v1/usuarios`. Correção sugerida:
-   ```python
-   api_router = APIRouter(prefix=settings.API_V1_STR)
-   ```
+Lista completa com códigos e exemplos: **[Swagger](https://esuda-certificados.onrender.com/docs)** (também local em `/docs`).
 
-2. **`seed.py` não valida as respostas.** Como aponta para `/api/v1`, todas as requisições retornam `404` — mas o script imprime `✅` mesmo assim, criando a ilusão de que o banco foi populado.
+## Perfis e permissões
 
-3. **`vagas_disponiveis` nunca é usada.** A coluna existe em `models.py`, mas a inscrição em `inscricoes.py` decrementa `capacidade`. Resultado: `capacidade` vai diminuindo (o valor original se perde) e `vagas_disponiveis` fica travada no valor inicial.
+Três papéis (`app/core/permissions.py`): `admin`, `organizador`, `participante`. Regras de dono: participante só mexe nas próprias inscrições/certificados; organizador só mexe nos eventos que criou (`criado_por`) e no que está vinculado a eles; admin mexe em tudo. Quem não tem o perfil recebe `403`; sem token ou token expirado, `401`; recurso inexistente, `404`. Detalhe tabela a tabela em [`app/matriz_permissoes.md`](app/matriz_permissoes.md).
 
-4. **Deprecation do Pydantic.** `config.py` usa `@validator` e `class Config` (estilo v1), o que gera avisos de depreciação no console e vai quebrar no Pydantic 3. Migrar para `@field_validator` e `SettingsConfigDict`.
+## Principais regras de negócio
 
-5. **JWT pronto, mas sem rota de login.** `security.py`, `deps.py` e `permissions.py` existem e funcionam, porém nenhuma rota `/login` foi criada e os routers não exigem token — ou seja, **todas as rotas estão públicas**.
+R1–R10 documentadas na 1AV e revisadas + R11–R16 novas da 2AV (certificado terminal, categoria com vínculo, sem promoção a admin, etc.) — todas com endpoint e status em [`app/regras_negocios.md`](app/regras_negocios.md).
 
-6. **Senhas em texto puro** no banco, sem hash, e o campo `papel` é texto livre (sem validação).
+## Ambiente publicado
 
-7. **`echo=True` no engine** (`app/database/database.py`): todo SQL é impresso no terminal. Comentar se poluir o console.
+- **API:** https://esuda-certificados.onrender.com
+- **Swagger:** https://esuda-certificados.onrender.com/docs
+- **Banco:** Postgres persistente no Render (criado pelo `render.yaml`); `DATABASE_URL`, `JWT_SECRET_KEY` etc. são variáveis de ambiente do serviço — nenhum segredo versionado.
+- O boot roda `create_all()` (sem `drop_all`), então os dados sobrevivem a redeploy/restart.
 
+## Integrantes e responsabilidades
 
-## Referência rápida
+| Integrante | Responsabilidade |
+| ---------- | ---------------- |
+| Thiago Henrique | _(preencher)_ |
+| Victor Oliveira | _(preencher)_ |
+| _(outro integrante)_ | _(preencher)_ |
 
-```bash
-python -m venv .venv && source .venv/bin/activate   # preparar ambiente
-pip install -r requirements.txt                     # instalar
-python run.py                                       # subir em :8000
-python run.py 8080                                  # subir em :8080
-curl localhost:8000/health                          # testar
-python seed.py                                      # popular (com API no ar)
-```
+## Evolução 1AV → 2AV
+
+O relatório completo (revisão do MVP, correções, refatorações e rastreabilidade) está em [`docs/relatorio_evolucao_2av.md`](docs/relatorio_evolucao_2av.md). Contexto original do problema em [`app/README.md`](app/README.md).
