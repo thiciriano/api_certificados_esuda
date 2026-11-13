@@ -46,7 +46,7 @@
 | `tests/test_regras_negocio.py` | Regras de negócio (R1–R15) | 13 |
 | `tests/test_validacoes.py` | Validação e tratamento de erros | 10 |
 
-- Banco de teste isolado em `/tmp/opencode/esuda_pytest.db` (variável `DATABASE_URL` setada no `conftest.py` antes de importar a app) — não toca no banco local nem no de produção.
+- Banco de teste isolado em `opencode/esuda_pytest.db` dentro do diretório temporário do sistema (via `tempfile.gettempdir()`, resolve `/tmp` no Linux e `%TEMP%` no Windows). A variável `DATABASE_URL` é setada no `conftest.py` antes de importar a app — não toca no banco local nem no de produção.
 - Fixtures por perfil (`admin_headers`, `organizador_headers`, `participante_headers`) e `token_expirado_headers`.
 - Execução: `pytest` (raiz do projeto). Resultado: **47 passed**.
 
@@ -80,3 +80,90 @@
 - `JWT_SECRET_KEY` com valor gerado pelo Render (não versionado).
 - Comando de start: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
 - `create_all()` roda no boot (sem `drop_all`), então os dados persistem entre reinicializações.
+
+## 8. Evidências de execução (autenticação JWT)
+
+Todas as evidências abaixo foram obtidas com a API rodando localmente (`python run.py`), que serve a mesma aplicação do deploy. Reprodução:
+
+```bash
+python run.py                 # sobe em http://localhost:8000
+# Swagger:  http://localhost:8000/docs
+# OpenAPI:  http://localhost:8000/openapi.json
+```
+
+### 8.1 Código-fonte no GitHub
+
+- Repositório público: <https://github.com/thiciriano/api_certificados_esuda>
+- Branch de trabalho: `feat/auth-jwt` · Pull Request aberto: **#1** (`feat/auth-jwt` → `main`).
+- Commits da branch: <https://github.com/thiciriano/api_certificados_esuda/commits/feat/auth-jwt>
+
+### 8.2 Swagger apresentando os endpoints de autenticação
+
+Em `GET /openapi.json`, o endpoint de login aparece com a tag **Autenticação** e o esquema de segurança `OAuth2PasswordBearer` (que habilita o botão **Authorize** no `/docs`):
+
+```
+POST   /api/v1/auth/login   [Autenticação]  Login
+Schemes de segurança: ['OAuth2PasswordBearer']
+OAuth2 tokenUrl: api/v1/auth/login
+```
+
+> 📸 **Print 1:** `http://localhost:8000/docs` mostrando a tag **Autenticação** com o `POST /auth/login` e o botão **Authorize** no topo.
+
+### 8.3 Login funcionando e retornando JWT
+
+Requisição (OAuth2 password flow, e-mail no campo `username`):
+
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -d "username=admin@esuda.edu.br&password=<senha>"
+```
+
+Resposta **HTTP 200**:
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```
+
+> 📸 **Print 2:** o `POST /auth/login` no Swagger com a resposta contendo o `access_token`.
+
+### 8.4 Acesso autorizado com token válido
+
+```bash
+curl http://localhost:8000/api/v1/usuarios/me -H "Authorization: Bearer <access_token>"
+```
+
+Resposta **HTTP 200**:
+
+```json
+{
+  "success": true,
+  "message": "Usuário autenticado",
+  "data": { "id": 9, "nome": "Aluno Evidencia", "email": "evidencia@esuda.edu.br",
+            "papel": "participante", "is_active": true }
+}
+```
+
+> 📸 **Print 3:** `GET /usuarios/me` com **200 OK** e os dados do usuário dono do token.
+
+### 8.5 Acesso negado com token inválido ou ausente
+
+| Cenário | Requisição | Resposta |
+| ------- | ---------- | -------- |
+| Sem token | `GET /api/v1/usuarios/me` | **401** `{"detail": "Not authenticated"}` |
+| Token inválido | `... -H "Authorization: Bearer token.falso.invalido"` | **401** `{"detail": "Token inválido ou expirado"}` |
+
+> 📸 **Print 4:** as duas chamadas acima retornando **401** (sem token e com token inválido).
+
+### 8.6 Senha nunca é gravada em texto puro (RN16)
+
+Consulta direta à tabela `usuarios` após o cadastro:
+
+```
+evidencia@esuda.edu.br -> $2b$12$t7g8IS72C14nZoA1Gx03Yu3Jq...   (bcrypt: True)
+```
+
+> 📸 **Print 5 (opcional):** o registro do usuário no banco com o campo `senha` começando por `$2b$`.
+
