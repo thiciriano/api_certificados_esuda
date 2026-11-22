@@ -52,7 +52,7 @@ Esuda/
 - **Inscrição** 1—1 **Certificado** (uma inscrição gera no máximo um)
 - **Evento.criado_por** → Usuario (define o dono do evento p/ autorização)
 
-## Como rodar locally
+## Como rodar localmente
 
 ```bash
 # 1. dependências (use venv)
@@ -79,10 +79,11 @@ O banco local é o arquivo `esuda_certificados.db` (criado automaticamente, não
 
 ```bash
 pytest           # roda tudo (47 testes)
+pytest -v        # saída detalhada (evidência em docs/evidencias/pytest-v.txt)
 pytest tests/test_auth.py -v   # só um arquivo, verboso
 ```
 
-O `tests/conftest.py` aponta o `DATABASE_URL` para um banco isolado em `/tmp/opencode/` — os testes **não** tocam no banco local nem no de produção.
+O `tests/conftest.py` aponta o `DATABASE_URL` para um banco isolado no diretório temporário do sistema (`/tmp/opencode/` no Linux) — os testes **não** tocam no banco local nem no de produção. Resultado registrado: **47 passed**.
 
 ## Endpoints principais (prefixo `/api/v1`)
 
@@ -116,13 +117,19 @@ R1–R10 documentadas na 1AV e revisadas + R11–R16 novas da 2AV (certificado t
 - **Banco:** Postgres persistente no Render (criado pelo `render.yaml`); `DATABASE_URL`, `JWT_SECRET_KEY` etc. são variáveis de ambiente do serviço — nenhum segredo versionado.
 - O boot roda `create_all()` (sem `drop_all`), então os dados sobrevivem a redeploy/restart.
 
+## Evidências e versionamento
+
+- Requisições reais com acessos permitidos e negados (200/201/401/403) e esquema de segurança do OpenAPI: [`docs/evidencias/requisicoes-acesso.txt`](docs/evidencias/requisicoes-acesso.txt).
+- Execução completa da suíte com `pytest -v`: [`docs/evidencias/pytest-v.txt`](docs/evidencias/pytest-v.txt).
+- Matriz de permissões com os endpoints protegidos: [`app/matriz_permissoes.md`](app/matriz_permissoes.md).
+- Relatório de evolução, rastreabilidade e explicação dos testes: [`docs/relatorio_evolucao_2av.md`](docs/relatorio_evolucao_2av.md).
+- Repositório: <https://github.com/thiciriano/api_certificados_esuda> · branch `feat/auth-jwt` · PR #1 · versão final `v1.0.0`.
+
 ## Integrantes e responsabilidades
 
 | Integrante | Responsabilidade |
 | ---------- | ---------------- |
-| Thiago Henrique | _(preencher)_ |
-| Victor Oliveira | _(preencher)_ |
-| _(outro integrante)_ | _(preencher)_ |
+| Thiago Neves | Desenvolvimento da API (CRUDs, autenticação JWT, autorização por perfil), testes automatizados e deploy |
 
 ## Evolução 1AV → 2AV
 
