@@ -40,15 +40,15 @@
 
 | Arquivo | Categoria | Testes |
 | ------- | --------- | ------ |
-| `tests/test_auth.py` | Autenticação e JWT | 8 |
+| `tests/test_auth.py` | Autenticação e JWT | 9 |
 | `tests/test_permissions.py` | Autorização e controle de acesso | 11 |
 | `tests/test_usuarios.py` | CRUD e operações principais | 5 |
-| `tests/test_regras_negocio.py` | Regras de negócio (R1–R15) | 13 |
+| `tests/test_regras_negocio.py` | Regras de negócio (R1–R15) | 12 |
 | `tests/test_validacoes.py` | Validação e tratamento de erros | 10 |
 
 - Banco de teste isolado em `opencode/esuda_pytest.db` dentro do diretório temporário do sistema (via `tempfile.gettempdir()`, resolve `/tmp` no Linux e `%TEMP%` no Windows). A variável `DATABASE_URL` é setada no `conftest.py` antes de importar a app — não toca no banco local nem no de produção.
 - Fixtures por perfil (`admin_headers`, `organizador_headers`, `participante_headers`) e `token_expirado_headers`.
-- Execução: `pytest` (raiz do projeto). Resultado: **47 passed**.
+- Execução: `pytest -v` (raiz do projeto). Resultado: **47 passed**, registrado integralmente em [`docs/evidencias/pytest-v.txt`](../docs/evidencias/pytest-v.txt).
 
 ## 6. Rastreabilidade requisitos × endpoints
 
@@ -81,9 +81,9 @@
 - Comando de start: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
 - `create_all()` roda no boot (sem `drop_all`), então os dados persistem entre reinicializações.
 
-## 8. Evidências de execução (autenticação JWT)
+## 8. Evidências de execução (autenticação, autorização e testes)
 
-Todas as evidências abaixo foram obtidas com a API rodando localmente (`python run.py`), que serve a mesma aplicação do deploy. Reprodução:
+As requisições abaixo foram executadas contra a API local (`uvicorn app.main:app`), com banco SQLite isolado e chave JWT temporária. O log completo com comandos `curl`, códigos HTTP e respostas está em [`docs/evidencias/requisicoes-acesso.txt`](../docs/evidencias/requisicoes-acesso.txt). Reprodução:
 
 ```bash
 python run.py                 # sobe em http://localhost:8000
@@ -94,8 +94,9 @@ python run.py                 # sobe em http://localhost:8000
 ### 8.1 Código-fonte no GitHub
 
 - Repositório público: <https://github.com/thiciriano/api_certificados_esuda>
-- Branch de trabalho: `feat/auth-jwt` · Pull Request aberto: **#1** (`feat/auth-jwt` → `main`).
+- Branch de trabalho: `feat/auth-jwt` · Pull Request: **#1** (`feat/auth-jwt` → `main`).
 - Commits da branch: <https://github.com/thiciriano/api_certificados_esuda/commits/feat/auth-jwt>
+- Versão final identificada pela tag `v1.0.0`: <https://github.com/thiciriano/api_certificados_esuda/releases/tag/v1.0.0>
 
 ### 8.2 Swagger apresentando os endpoints de autenticação
 
@@ -107,7 +108,7 @@ Schemes de segurança: ['OAuth2PasswordBearer']
 OAuth2 tokenUrl: api/v1/auth/login
 ```
 
-> 📸 **Print 1:** `http://localhost:8000/docs` mostrando a tag **Autenticação** com o `POST /auth/login` e o botão **Authorize** no topo.
+Evidência: seção 9 de [`docs/evidencias/requisicoes-acesso.txt`](../docs/evidencias/requisicoes-acesso.txt), com o esquema `OAuth2PasswordBearer`, o `tokenUrl` e as 11 rotas marcadas com `security` no OpenAPI. No Swagger (`/docs`), essas rotas aparecem com o botão **Authorize**.
 
 ### 8.3 Login funcionando e retornando JWT
 
@@ -127,7 +128,7 @@ Resposta **HTTP 200**:
 }
 ```
 
-> 📸 **Print 2:** o `POST /auth/login` no Swagger com a resposta contendo o `access_token`.
+Evidência: seção 1 de [`docs/evidencias/requisicoes-acesso.txt`](../docs/evidencias/requisicoes-acesso.txt) — requisição real e resposta `HTTP 200` com `access_token` e `token_type: bearer` (token truncado no arquivo).
 
 ### 8.4 Acesso autorizado com token válido
 
@@ -141,12 +142,12 @@ Resposta **HTTP 200**:
 {
   "success": true,
   "message": "Usuário autenticado",
-  "data": { "id": 9, "nome": "Aluno Evidencia", "email": "evidencia@esuda.edu.br",
+  "data": { "id": 2, "nome": "Participante Evidencia", "email": "part@evidencia.edu.br",
             "papel": "participante", "is_active": true }
 }
 ```
 
-> 📸 **Print 3:** `GET /usuarios/me` com **200 OK** e os dados do usuário dono do token.
+Evidência: seção 2 de [`docs/evidencias/requisicoes-acesso.txt`](../docs/evidencias/requisicoes-acesso.txt) — `HTTP 200` com os dados do dono do token, sem senha nem hash.
 
 ### 8.5 Acesso negado com token inválido ou ausente
 
@@ -155,15 +156,34 @@ Resposta **HTTP 200**:
 | Sem token | `GET /api/v1/usuarios/me` | **401** `{"detail": "Not authenticated"}` |
 | Token inválido | `... -H "Authorization: Bearer token.falso.invalido"` | **401** `{"detail": "Token inválido ou expirado"}` |
 
-> 📸 **Print 4:** as duas chamadas acima retornando **401** (sem token e com token inválido).
+Evidência: seção 3 de [`docs/evidencias/requisicoes-acesso.txt`](../docs/evidencias/requisicoes-acesso.txt). O teste `test_token_expirado_retorna_401` cobre também token expirado.
 
 ### 8.6 Senha nunca é gravada em texto puro (RN16)
 
-Consulta direta à tabela `usuarios` após o cadastro:
+`hash_senha` grava apenas o hash bcrypt; `test_hash_da_senha_nao_é_texto_puro` confirma que o valor salvo é diferente da senha e que `verificar_senha` valida a credencial. `test_resposta_do_login_e_me_nunca_expoem_senha` garante que nem a senha nem o hash aparecem no JSON de login ou de `/usuarios/me`.
 
-```
-evidencia@esuda.edu.br -> $2b$12$t7g8IS72C14nZoA1Gx03Yu3Jq...   (bcrypt: True)
+### 8.7 Acessos permitidos e negados por perfil e por dono do recurso
+
+| Cenário | Status | Onde foi demonstrado |
+| ------- | ------ | -------------------- |
+| Participante em `POST /eventos` | `403` | seção 4.2 de `docs/evidencias/requisicoes-acesso.txt` |
+| Organizador em `POST /eventos` | `201` | seção 5.2 do mesmo arquivo |
+| Outro organizador em `PUT /eventos/{id}` | `403` | seção 6.1 (restrição por `criado_por`) |
+| Organizador dono em `DELETE /eventos/{id}` | `403` | seção 6.2 (perfil não pode excluir) |
+| Consulta aberta a `GET /eventos` e `GET /categorias` | `200` | seções 7 e 8 |
+
+### 8.8 Execução da suíte pytest
+
+```bash
+pytest -v
+# 47 passed, 1 warning in 48.57s
 ```
 
-> 📸 **Print 5 (opcional):** o registro do usuário no banco com o campo `senha` começando por `$2b$`.
+Saída integral (incluindo o aviso de depreciação do `TestClient` com `httpx`): [`docs/evidencias/pytest-v.txt`](../docs/evidencias/pytest-v.txt).
+
+## 9. Explicação de testes representativos
+
+- **Autenticação** — `test_login_com_credenciais_validas_retorna_token` (`tests/test_auth.py`): envia e-mail/senha da fixture no form OAuth2, exige `200`, `token_type: bearer` e `access_token`; depois reusa esse token em `GET /usuarios/me` e exige `200`. Ou seja, comprova que o JWT emitido é funcional e identifica o usuário, e não apenas que a rota responde.
+- **Autorização** — `test_nao_autenticado_e_diferente_de_autenticado_sem_permissao` (`tests/test_permissions.py`): a mesma rota `GET /usuarios` é chamada sem token (`401`) e com token de participante (`403`), validando a distinção entre autenticação e autorização. `test_organizador_nao_consegue_excluir_evento_mas_admin_consegue` completa a matriz ao verificar `403` para o organizador e `204` para o admin no mesmo recurso.
+- **Regra de negócio** — `test_r3_r6_inscricao_respeita_capacidade_e_vagas` (`tests/test_regras_negocio.py`): cria evento com capacidade 1, inscreve um participante (`201`), cria um segundo participante e exige `400` com mensagem sobre falta de vaga — comprovando que `vagas_disponiveis` é decrementado e que a capacidade é respeitada.
 
