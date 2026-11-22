@@ -1,0 +1,69 @@
+# Evidência de execução da suíte — pytest -v
+# Comando executado na raiz do projeto: pytest -v
+# Ambiente: Linux / Python 3.14.4 / pytest 9.2.0 (dependências de requirements.txt)
+# Saída integral abaixo (stdout + stderr), sem edições.
+
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.2.0, pluggy-1.7.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /mnt/c/Users/thine/Documents/Projetos/Esuda
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.16.0, typeguard-4.4.4
+collecting ... collected 47 items
+
+tests/test_auth.py::test_login_com_credenciais_validas_retorna_token PASSED [  2%]
+tests/test_auth.py::test_login_com_senha_incorreta_retorna_401 PASSED    [  4%]
+tests/test_auth.py::test_login_com_email_inexistente_retorna_401 PASSED  [  6%]
+tests/test_auth.py::test_rota_protegida_sem_token_retorna_401 PASSED     [  8%]
+tests/test_auth.py::test_token_invalido_retorna_401 PASSED               [ 10%]
+tests/test_auth.py::test_token_expirado_retorna_401 PASSED               [ 12%]
+tests/test_auth.py::test_resposta_do_login_e_me_nunca_expoem_senha PASSED [ 14%]
+tests/test_auth.py::test_hash_da_senha_nao_é_texto_puro PASSED           [ 17%]
+tests/test_auth.py::test_decode_de_token_assinado_com_outra_chave_retorna_none PASSED [ 19%]
+tests/test_permissions.py::test_participante_nao_consegue_criar_evento PASSED [ 21%]
+tests/test_permissions.py::test_organizador_consegue_criar_evento PASSED [ 23%]
+tests/test_permissions.py::test_organizador_nao_consegue_excluir_evento_mas_admin_consegue PASSED [ 25%]
+tests/test_permissions.py::test_participante_nao_consegue_listar_usuarios PASSED [ 27%]
+tests/test_permissions.py::test_nao_autenticado_e_diferente_de_autenticado_sem_permissao PASSED [ 29%]
+tests/test_permissions.py::test_organizador_nao_consegue_cancelar_inscricao_de_outro_evento PASSED [ 31%]
+tests/test_permissions.py::test_participante_nao_consegue_cancelar_inscricao_de_outro_participante PASSED [ 34%]
+tests/test_permissions.py::test_ninguem_se_promove_a_admin_pelo_cadastro PASSED [ 36%]
+tests/test_permissions.py::test_participante_nao_altera_proprio_papel_pelo_put PASSED [ 38%]
+tests/test_permissions.py::test_participante_nao_emite_certificado PASSED [ 40%]
+tests/test_permissions.py::test_participante_so_ve_as_proprias_inscricoes PASSED [ 42%]
+tests/test_regras_negocio.py::test_r1_email_duplicado_e_bloqueado PASSED [ 44%]
+tests/test_regras_negocio.py::test_r2_titulo_de_evento_duplicado_e_bloqueado PASSED [ 46%]
+tests/test_regras_negocio.py::test_r3_r6_inscricao_respeita_capacidade_e_vagas PASSED [ 48%]
+tests/test_regras_negocio.py::test_r4_inscricao_duplicada_e_bloqueada PASSED [ 51%]
+tests/test_regras_negocio.py::test_r5_evento_com_data_passada_e_bloqueado PASSED [ 53%]
+tests/test_regras_negocio.py::test_r7_cancelar_inscricao_devolve_a_vaga PASSED [ 55%]
+tests/test_regras_negocio.py::test_r8_certificado_somente_para_inscricao_ativa PASSED [ 57%]
+tests/test_regras_negocio.py::test_r10_cada_inscricao_gera_no_maximo_um_certificado PASSED [ 59%]
+tests/test_regras_negocio.py::test_r11_categoria_com_eventos_nao_e_excluida PASSED [ 61%]
+tests/test_regras_negocio.py::test_r12_capacidade_nao_fica_menor_que_inscricoes_ativas PASSED [ 63%]
+tests/test_regras_negocio.py::test_r13_certificado_cancelado_nao_muda_de_status PASSED [ 65%]
+tests/test_regras_negocio.py::test_evento_cancelado_nao_aceita_inscricao PASSED [ 68%]
+tests/test_usuarios.py::test_crud_completo_de_usuario PASSED             [ 70%]
+tests/test_usuarios.py::test_crud_completo_de_evento_como_organizador PASSED [ 72%]
+tests/test_usuarios.py::test_fluxo_inscricao_e_certificado PASSED        [ 74%]
+tests/test_usuarios.py::test_crud_de_categoria PASSED                    [ 76%]
+tests/test_usuarios.py::test_listagem_de_eventos_e_publica PASSED        [ 78%]
+tests/test_validacoes.py::test_criar_usuario_sem_campos_obrigatorios_retorna_422 PASSED [ 80%]
+tests/test_validacoes.py::test_senha_curta_retorna_422 PASSED            [ 82%]
+tests/test_validacoes.py::test_email_invalido_retorna_422 PASSED         [ 85%]
+tests/test_validacoes.py::test_papel_invalido_retorna_422 PASSED         [ 87%]
+tests/test_validacoes.py::test_criar_evento_com_capacidade_zero_retorna_422 PASSED [ 89%]
+tests/test_validacoes.py::test_categoria_inexistente_retorna_404 PASSED  [ 91%]
+tests/test_validacoes.py::test_inscricao_em_evento_inexistente_retorna_404 PASSED [ 93%]
+tests/test_validacoes.py::test_atualizar_recurso_inexistente_retorna_404 PASSED [ 95%]
+tests/test_validacoes.py::test_deletar_recurso_inexistente_retorna_404 PASSED [ 97%]
+tests/test_validacoes.py::test_status_de_inscricao_invalido_retorna_422 PASSED [100%]
+
+=============================== warnings summary ===============================
+../../../../../../../tmp/opencode/pylib/fastapi/testclient.py:1
+  /tmp/opencode/pylib/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 47 passed, 1 warning in 48.57s ========================

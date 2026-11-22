@@ -1,0 +1,170 @@
+# Evidencias de requisicoes - Esuda Certificados (2AV)
+
+Executado contra a API local (`uvicorn app.main:app`) em 22/11/2026, com
+banco SQLite isolado em `/tmp/opencode/esuda_evidencia.db` e chave JWT
+temporaria apenas para esta demonstracao. Tokens exibidos de forma truncada.
+As senhas abaixo sao descartaveis e nao sao usadas em producao.
+
+--- 1. Login com credenciais validas retorna JWT ---
+curl -X POST "http://127.0.0.1:8123/api/v1/auth/login" -d "username=part@evidencia.edu.br&password=Evidencia123"
+HTTP 200
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5...",
+  "token_type": "bearer"
+}
+
+--- 2. Acesso autorizado: token valido identifica o usuario ---
+
+--- GET /api/v1/usuarios/me ---
+curl -X GET "http://127.0.0.1:8123/api/v1/usuarios/me" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5..."
+HTTP 200
+{
+  "success": true,
+  "message": "Usuário autenticado",
+  "data": {
+    "id": 2,
+    "nome": "Participante Evidencia",
+    "email": "part@evidencia.edu.br",
+    "papel": "participante",
+    "is_active": true,
+    "created_at": "2026-11-22"
+  }
+}
+
+--- 3. Acesso negado: sem token e com token invalido (401 Unauthorized) ---
+
+--- 3.1 Sem token ---
+curl -X GET "http://127.0.0.1:8123/api/v1/usuarios/me"
+HTTP 401
+{
+  "detail": "Not authenticated"
+}
+
+--- 3.2 Token invalido ---
+curl -X GET "http://127.0.0.1:8123/api/v1/usuarios/me" -H "Authorization: Bearer token.falso.invalido"
+HTTP 401
+{
+  "detail": "Token inválido ou expirado"
+}
+
+--- 4. Acesso negado: perfil sem permissao (403 Forbidden) ---
+
+--- 4.1 Participante listando usuarios ---
+curl -X GET "http://127.0.0.1:8123/api/v1/usuarios" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5..."
+HTTP 403
+{
+  "detail": "Você não tem permissão para esta operação"
+}
+
+--- 4.2 Participante criando evento ---
+curl -X POST "http://127.0.0.1:8123/api/v1/eventos" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5..." -H "Content-Type: application/json" -d '{"titulo": "Evento negado", "data_evento": "2027-03-10", "capacidade": 10, "categoria_id": 1}'
+HTTP 403
+{
+  "detail": "Você não tem permissão para esta operação"
+}
+
+--- 5. Acesso permitido: perfil com permissao cria o recurso ---
+
+--- 5.1 Organizador cria categoria ---
+curl -X POST "http://127.0.0.1:8123/api/v1/categorias" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5..." -H "Content-Type: application/json" -d '{"nome": "Evidencia 2AV", "descricao": "Categoria da demonstracao"}'
+HTTP 201
+{
+  "success": true,
+  "message": "Categoria criada",
+  "data": {
+    "nome": "Evidencia 2AV",
+    "descricao": "Categoria da demonstracao",
+    "id": 1
+  }
+}
+
+--- 5.2 Organizador cria evento ---
+curl -X POST "http://127.0.0.1:8123/api/v1/eventos" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5..." -H "Content-Type: application/json" -d '{"titulo": "Semana da Computacao 2027", "descricao": "Evento da demonstracao", "data_evento": "2027-03-10", "local": "Auditorio Esuda", "capacidade": 20, "categoria_id": 1}'
+HTTP 201
+{
+  "success": true,
+  "message": "Evento criado",
+  "data": {
+    "titulo": "Semana da Computacao 2027",
+    "descricao": "Evento da demonstracao",
+    "data_evento": "2027-03-10",
+    "local": "Auditorio Esuda",
+    "capacidade": 20,
+    "categoria_id": 1,
+    "id": 1,
+    "vagas_disponiveis": 20,
+    "status": "ativo",
+    "categoria": {
+      "nome": "Evidencia 2AV",
+      "descricao": "Categoria da demonstracao",
+      "id": 1
+    }
+  }
+}
+
+--- 6. Acesso negado: recurso de outro usuario mesmo com perfil valido ---
+
+--- 6.1 Outro organizador tenta editar o evento ---
+curl -X PUT "http://127.0.0.1:8123/api/v1/eventos/1" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5..." -H "Content-Type: application/json" -d '{"descricao": "Tentativa de alterar evento alheio"}'
+HTTP 403
+{
+  "detail": "Você só pode alterar eventos que você criou"
+}
+
+--- 6.2 Organizador dono nao pode excluir evento (perfil) ---
+curl -X DELETE "http://127.0.0.1:8123/api/v1/eventos/1" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5..."
+HTTP 403
+{
+  "detail": "Você não tem permissão para esta operação"
+}
+
+--- 7. Consulta publica de eventos (sem token) ---
+curl -X GET "http://127.0.0.1:8123/api/v1/eventos"
+HTTP 200
+[
+  {
+    "titulo": "Semana da Computacao 2027",
+    "descricao": "Evento da demonstracao",
+    "data_evento": "2027-03-10",
+    "local": "Auditorio Esuda",
+    "capacidade": 20,
+    "categoria_id": 1,
+    "id": 1,
+    "vagas_disponiveis": 20,
+    "status": "ativo",
+    "categoria": {
+      "nome": "Evidencia 2AV",
+      "descricao": "Categoria da demonstracao",
+      "id": 1
+    }
+  }
+]
+
+--- 8. Consulta publica de categorias (sem token) ---
+curl -X GET "http://127.0.0.1:8123/api/v1/categorias"
+HTTP 200
+[
+  {
+    "nome": "Evidencia 2AV",
+    "descricao": "Categoria da demonstracao",
+    "id": 1
+  }
+]
+
+--- 9. Swagger/OpenAPI: esquema de seguranca Bearer/JWT ---
+Title: Esuda Certificados
+Version: 2.0.0
+Security schemes: {"OAuth2PasswordBearer": {"type": "oauth2", "flows": {"password": {"scopes": {}, "tokenUrl": "api/v1/auth/login"}}}}
+POST /api/v1/auth/login summary: Login
+Rotas com 'security' no OpenAPI: 11
+  - /api/v1/usuarios
+  - /api/v1/usuarios/me
+  - /api/v1/usuarios/{usuario_id}
+  - /api/v1/eventos
+  - /api/v1/eventos/{evento_id}
+  - /api/v1/inscricoes
+  - /api/v1/inscricoes/{inscricao_id}
+  - /api/v1/certificados
+  - /api/v1/certificados/{cert_id}
+  - /api/v1/categorias
+  - /api/v1/categorias/{categoria_id}
