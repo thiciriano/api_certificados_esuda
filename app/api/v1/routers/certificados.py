@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_current_active_user, precisa_de_permissao
 from app.core.swagger_presets import EXEMPLO_CERTIFICADO, EXEMPLO_CERTIFICADO_STATUS
 from app.database.database import get_db
-from app.models.models import Certificado, Evento, Inscrição, Usuario
+from app.services.escopo import certificados_visiveis
+from app.models.models import Certificado, Inscrição, Usuario
 from app.schemas.schemas import (
     CertificadoCreate,
     CertificadoOut,
@@ -19,23 +20,6 @@ from app.schemas.schemas import (
 
 
 router = APIRouter(prefix="/certificados", tags=["Certificados"])
-
-
-def _certificados_do_organizador(db: Session, usuario: Usuario) -> list[Certificado]:
-    """certificados de inscricoes de eventos criados pelo organizador"""
-    eventos_ids = [
-        e.id for e in db.query(Evento).filter(Evento.criado_por == usuario.id).all()
-    ]
-    if not eventos_ids:
-        return []
-    inscricoes_ids = [
-        i.id for i in db.query(Inscrição).filter(Inscrição.evento_id.in_(eventos_ids)).all()
-    ]
-    return (
-        db.query(Certificado)
-        .filter(Certificado.inscricao_id.in_(inscricoes_ids))
-        .all()
-    )
 
 
 @router.post(
@@ -93,13 +77,7 @@ async def listar_certificados(
     current_user: Usuario = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ) -> list[CertificadoOut]:
-    if current_user.papel == "admin":
-        return db.query(Certificado).all()
-
-    if current_user.papel == "organizador":
-        return _certificados_do_organizador(db, current_user)
-
-    return db.query(Certificado).filter(Certificado.usuario_id == current_user.id).all()
+    return certificados_visiveis(db, current_user)
 
 
 @router.put(

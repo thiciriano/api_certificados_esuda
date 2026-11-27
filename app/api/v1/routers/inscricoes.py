@@ -6,8 +6,8 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_active_user, precisa_de_permissao
-from app.core.permissions import eh_dono_ou_admin
 from app.core.swagger_presets import EXEMPLO_INSCRICAO, EXEMPLO_INSCRICAO_STATUS
+from app.services.escopo import inscricoes_visiveis, pode_alterar_inscricao
 from app.database.database import get_db
 from app.models.models import Certificado, Evento, Inscrição, Usuario
 from app.schemas.schemas import (
@@ -19,12 +19,6 @@ from app.schemas.schemas import (
 
 
 router = APIRouter(prefix="/inscricoes", tags=["Inscrições"])
-
-
-def _evento_do_organizador(db: Session, usuario: Usuario, evento_id: int) -> bool:
-    """confere se o evento pertence a algum evento criado pelo organizador"""
-    evento = db.query(Evento).filter(Evento.id == evento_id).first()
-    return evento is not None and evento.criado_por == usuario.id
 
 
 @router.post(
@@ -97,16 +91,7 @@ async def listar_inscricoes(
     current_user: Usuario = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ) -> list[InscriçãoOut]:
-    if current_user.papel == "admin":
-        return db.query(Inscrição).all()
-
-    if current_user.papel == "organizador":
-        eventos_ids = [
-            e.id for e in db.query(Evento).filter(Evento.criado_por == current_user.id).all()
-        ]
-        return db.query(Inscrição).filter(Inscrição.evento_id.in_(eventos_ids)).all()
-
-    return db.query(Inscrição).filter(Inscrição.usuario_id == current_user.id).all()
+    return inscricoes_visiveis(db, current_user)
 
 
 @router.put(
@@ -130,17 +115,13 @@ async def atualizar_inscricao(
         raise HTTPException(status_code=404, detail="Inscrição não encontrada")
 
     # nao da pra mexer na inscricao de outra pessoa (alterar a URL nao adianta)
-    if current_user.papel == "organizador":
-        if not _evento_do_organizador(db, current_user, db_insc.evento_id):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Você só pode alterar inscrições de eventos que você criou",
-            )
-    elif not eh_dono_ou_admin(current_user, db_insc.usuario_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você só pode alterar a própria inscrição",
+    if not pode_alterar_inscricao(db, current_user, db_insc):
+        detalhe = (
+            "Você só pode alterar inscrições de eventos que você criou"
+            if current_user.papel == "organizador"
+            else "Você só pode alterar a própria inscrição"
         )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detalhe)
 
     ev = db.query(Evento).filter(Evento.id == db_insc.evento_id).first()
 
