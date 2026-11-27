@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_current_active_user, precisa_de_permissao
 from app.core.permissions import eh_dono_ou_admin
 from app.core.swagger_presets import EXEMPLO_EVENTO, EXEMPLO_EVENTO_UPDATE
+from app.services.validacoes import titulo_evento_ja_usado
 from app.database.database import get_db
 from app.models.models import Certificado, Categoria, Evento, Inscrição, Usuario
 from app.schemas.schemas import EventoCreate, EventoOut, EventoUpdate, RespostaEvento
@@ -33,8 +34,7 @@ async def criar_evento(
         raise HTTPException(status_code=404, detail="Categoria não encontrada")
 
     # titulo tambem é unico (R2)
-    titulo_ja_usado = db.query(Evento).filter(Evento.titulo == evento.titulo).first()
-    if titulo_ja_usado:
+    if titulo_evento_ja_usado(db, evento.titulo):
         raise HTTPException(status_code=400, detail="Já existe evento com este título")
 
     # data tem que ser futura (R5)
@@ -108,14 +108,8 @@ async def atualizar_evento(
 
     dados = evento.model_dump(exclude_unset=True)
 
-    if "titulo" in dados:
-        titulo_ja_usado = (
-            db.query(Evento)
-            .filter(Evento.titulo == dados["titulo"], Evento.id != evento_id)
-            .first()
-        )
-        if titulo_ja_usado:
-            raise HTTPException(status_code=400, detail="Já existe evento com este título")
+    if "titulo" in dados and titulo_evento_ja_usado(db, dados["titulo"], evento_id):
+        raise HTTPException(status_code=400, detail="Já existe evento com este título")
 
     if "data_evento" in dados and dados["data_evento"] < date.today():
         raise HTTPException(status_code=400, detail="Não é permitido cadastrar evento com data passada")

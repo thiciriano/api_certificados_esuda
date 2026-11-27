@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import precisa_de_permissao
 from app.core.swagger_presets import EXEMPLO_CATEGORIA, EXEMPLO_CATEGORIA_UPDATE
+from app.services.validacoes import categoria_ja_existe
 from app.database.database import get_db
 from app.models.models import Categoria, Evento, Usuario
 from app.schemas.schemas import CategoriaCreate, CategoriaOut, CategoriaUpdate, RespostaCategoria
@@ -27,7 +28,7 @@ async def criar_categoria(
     db: Session = Depends(get_db),
 ) -> RespostaCategoria:
     # nome é unico
-    if db.query(Categoria).filter(Categoria.nome == categoria.nome).first():
+    if categoria_ja_existe(db, categoria.nome):
         raise HTTPException(status_code=400, detail="Ja existe categoria com este nome")
 
     novo = Categoria(nome=categoria.nome, descricao=categoria.descricao)
@@ -69,14 +70,8 @@ async def atualizar_categoria(
 
     dados = categoria.model_dump(exclude_unset=True)
 
-    if "nome" in dados:
-        nome_ja_usado = (
-            db.query(Categoria)
-            .filter(Categoria.nome == dados["nome"], Categoria.id != categoria_id)
-            .first()
-        )
-        if nome_ja_usado:
-            raise HTTPException(status_code=400, detail="Ja existe categoria com este nome")
+    if "nome" in dados and categoria_ja_existe(db, dados["nome"], categoria_id):
+        raise HTTPException(status_code=400, detail="Ja existe categoria com este nome")
 
     # só muda o que veio no body
     for campo, valor in dados.items():

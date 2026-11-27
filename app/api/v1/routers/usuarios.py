@@ -8,6 +8,7 @@ from app.core.deps import get_current_active_user, get_user_optional, precisa_de
 from app.core.permissions import eh_dono_ou_admin
 from app.core.security import hash_senha
 from app.core.swagger_presets import EXEMPLO_USUARIO, EXEMPLO_USUARIO_UPDATE
+from app.services.validacoes import email_ja_cadastrado
 from app.database.database import get_db
 from app.models.models import Usuario
 from app.schemas.schemas import RespostaUsuario, UsuarioCreate, UsuarioOut, UsuarioUpdate
@@ -40,7 +41,7 @@ async def criar_usuario(
         )
 
     # email é unico (R1)
-    if db.query(Usuario).filter(Usuario.email == usuario.email).first():
+    if email_ja_cadastrado(db, usuario.email):
         raise HTTPException(status_code=400, detail="E-mail já cadastrado")
 
     novo = Usuario(
@@ -116,14 +117,8 @@ async def atualizar_usuario(
             detail="Apenas administradores podem alterar o papel",
         )
 
-    if "email" in dados:
-        email_ja_usado = (
-            db.query(Usuario)
-            .filter(Usuario.email == dados["email"], Usuario.id != usuario_id)
-            .first()
-        )
-        if email_ja_usado:
-            raise HTTPException(status_code=400, detail="E-mail já cadastrado")
+    if "email" in dados and email_ja_cadastrado(db, dados["email"], usuario_id):
+        raise HTTPException(status_code=400, detail="E-mail já cadastrado")
 
     if "senha" in dados:
         db_usuario.senha = hash_senha(dados.pop("senha"))
