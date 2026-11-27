@@ -6,7 +6,7 @@ Entrega final consolidada da API REST de eventos acadêmicos, inscrições e cer
 **Repositório:** <https://github.com/thiciriano/api_certificados_esuda>  
 **API pública:** <https://api-certificados-esuda.onrender.com>  
 **Swagger publicado:** <https://api-certificados-esuda.onrender.com/docs>  
-**Versão entregue:** `v2.0.0` (`main` @ `8495bd3`)
+**Versão entregue:** `v2.0.0` (tag final no `main`)
 
 ---
 
@@ -105,6 +105,7 @@ A demonstração pública cobre: `GET /health`, `GET /docs`, `GET /openapi.json`
 - **Ambiente de execução:** o Python do sistema não tinha as dependências instaladas; elas foram instaladas em um diretório isolado (`/tmp/opencode/pylib`) para rodar os 52 testes e gerar o OpenAPI sem afetar o projeto.
 - **Ferramentas de apresentação ausentes:** não havia LibreOffice/pandoc; PPTX e PDF foram gerados com `python-pptx` e `reportlab` a partir do único roteiro Markdown versionado.
 - **Aviso do `TestClient`:** a versão atual de Starlette recomenda `httpx2`; o aviso é registrado nas evidências e não afeta os resultados.
+- **CRUD da 1AV perdido na refatoração:** a validação pública mostrou que `GET /certificados/{id}` (presente na 1ª entrega) não estava mais exposto. A rota foi restaurada com o mesmo escopo da listagem (`certificados_visiveis`) e coberta por teste em `tests/test_usuarios.py` (`fa3b289`).
 
 ---
 
