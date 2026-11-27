@@ -30,14 +30,18 @@ Esuda/
 │   │   ├── security.py             # hash bcrypt + criar/decodificar JWT
 │   │   ├── deps.py                 # get_current_user, precisa_de_permissao
 │   │   ├── permissions.py          # matriz PERFIS (o que cada papel pode)
+│   │   ├── errors.py               # handlers e envelope único de erro
 │   │   └── swagger_presets.py      # exemplos de payload pro Swagger
+│   ├── services/                   # escopo dos recursos e validações de unicidade
 │   ├── database/database.py        # engine, SessionLocal, get_db
 │   ├── models/models.py            # tabelas (SQLAlchemy)
 │   ├── schemas/schemas.py          # validação de entrada/saída (Pydantic)
 │   ├── main.py                     # sobe a API (create_all sem drop_all)
 │   └── matriz_permissoes.md / regras_negocios.md / criteria_aceite.md
-├── tests/                          # suíte pytest (conftest + 5 arquivos)
+├── tests/                          # suíte pytest (conftest + 6 arquivos)
 ├── docs/relatorio_evolucao_2av.md  # relatório de evolução 1AV → 2AV
+├── docs/relatorio_terceira_entrega.md
+├── docs/evidencias/                # pytest -v, requisições e OpenAPI
 ├── run.py                          # python run.py [porta]
 ├── seed.py                         # popula o banco com dados de teste
 ├── render.yaml                     # blueprint do Render (deploy)
@@ -78,12 +82,12 @@ O banco local é o arquivo `esuda_certificados.db` (criado automaticamente, não
 ## Testes
 
 ```bash
-pytest           # roda tudo (47 testes)
-pytest -v        # saída detalhada (evidência em docs/evidencias/pytest-v.txt)
+pytest           # roda tudo (52 testes)
+pytest -v        # saída detalhada (evidência em docs/evidencias/pytest-v-3av.txt)
 pytest tests/test_auth.py -v   # só um arquivo, verboso
 ```
 
-O `tests/conftest.py` aponta o `DATABASE_URL` para um banco isolado no diretório temporário do sistema (`/tmp/opencode/` no Linux) — os testes **não** tocam no banco local nem no de produção. Resultado registrado: **47 passed**.
+O `tests/conftest.py` aponta o `DATABASE_URL` para um banco isolado no diretório temporário do sistema (`/tmp/opencode/` no Linux) — os testes **não** tocam no banco local nem no de produção. Resultado registrado: **52 passed**.
 
 ## Endpoints principais (prefixo `/api/v1`)
 
@@ -119,11 +123,12 @@ R1–R10 documentadas na 1AV e revisadas + R11–R16 novas da 2AV (certificado t
 
 ## Evidências e versionamento
 
-- Requisições reais com acessos permitidos e negados (200/201/401/403) e esquema de segurança do OpenAPI: [`docs/evidencias/requisicoes-acesso.txt`](docs/evidencias/requisicoes-acesso.txt).
-- Execução completa da suíte com `pytest -v`: [`docs/evidencias/pytest-v.txt`](docs/evidencias/pytest-v.txt).
+- Requisições reais com acessos permitidos e negados (200/201/401/403): [`docs/evidencias/requisicoes-acesso.txt`](docs/evidencias/requisicoes-acesso.txt).
+- Execução da suíte com `pytest -v`: [`docs/evidencias/pytest-v.txt`](docs/evidencias/pytest-v.txt) (2AV) e [`docs/evidencias/pytest-v-3av.txt`](docs/evidencias/pytest-v-3av.txt) (52 testes).
+- Swagger/OpenAPI final, com esquemas de erro e autenticação: [`docs/evidencias/swagger-3av.txt`](docs/evidencias/swagger-3av.txt).
 - Matriz de permissões com os endpoints protegidos: [`app/matriz_permissoes.md`](app/matriz_permissoes.md).
-- Relatório de evolução, rastreabilidade e explicação dos testes: [`docs/relatorio_evolucao_2av.md`](docs/relatorio_evolucao_2av.md).
-- Repositório: <https://github.com/thiciriano/api_certificados_esuda> · branch `feat/auth-jwt` · PR #1 · versão final `v1.0.0`.
+- Relatórios: [evolução 1AV → 2AV](docs/relatorio_evolucao_2av.md) e [terceira entrega](docs/relatorio_terceira_entrega.md).
+- Repositório: <https://github.com/thiciriano/api_certificados_esuda> · branch `feat/auth-jwt` · PR #1 · tags `v1.0.0` (2AV) e `v1.1.0` (3AV).
 
 ## Integrantes e responsabilidades
 
@@ -131,6 +136,8 @@ R1–R10 documentadas na 1AV e revisadas + R11–R16 novas da 2AV (certificado t
 | ---------- | ---------------- |
 | Thiago Neves | Desenvolvimento da API (CRUDs, autenticação JWT, autorização por perfil), testes automatizados e deploy |
 
-## Evolução 1AV → 2AV
+## Evolução das entregas
 
-O relatório completo (revisão do MVP, correções, refatorações e rastreabilidade) está em [`docs/relatorio_evolucao_2av.md`](docs/relatorio_evolucao_2av.md). Contexto original do problema em [`app/README.md`](app/README.md).
+- 1AV → 2AV: revisão do MVP, correções, refatorações e rastreabilidade em [`docs/relatorio_evolucao_2av.md`](docs/relatorio_evolucao_2av.md).
+- 3AV: três melhorias demonstradas, padronização de erros e configurações de deploy em [`docs/relatorio_terceira_entrega.md`](docs/relatorio_terceira_entrega.md).
+- Contexto original do problema em [`app/README.md`](app/README.md).
