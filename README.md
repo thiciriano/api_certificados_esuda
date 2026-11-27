@@ -104,7 +104,7 @@ O `tests/conftest.py` aponta o `DATABASE_URL` para um banco isolado no diretóri
 | POST/GET/PUT/DELETE | `/certificados` | Bearer | Emissão e gestão conforme matriz |
 | GET/POST/PUT/DELETE | `/categorias` | Bearer* | *GET aberto; escrita é organizador/admin |
 
-Lista completa com códigos e exemplos: **[Swagger](https://esuda-certificados.onrender.com/docs)** (também local em `/docs`).
+Lista completa com códigos e exemplos: **[Swagger](https://api-certificados-esuda.onrender.com/docs)** (também local em `/docs`).
 
 ## Perfis e permissões
 
@@ -116,8 +116,9 @@ R1–R10 documentadas na 1AV e revisadas + R11–R16 novas da 2AV (certificado t
 
 ## Ambiente publicado
 
-- **API:** https://esuda-certificados.onrender.com
-- **Swagger:** https://esuda-certificados.onrender.com/docs
+- **API:** https://api-certificados-esuda.onrender.com
+- **Swagger:** https://api-certificados-esuda.onrender.com/docs
+- **Health:** https://api-certificados-esuda.onrender.com/health
 - **Banco:** Postgres persistente no Render (criado pelo `render.yaml`); `DATABASE_URL`, `JWT_SECRET_KEY` etc. são variáveis de ambiente do serviço — nenhum segredo versionado.
 - O boot roda `create_all()` (sem `drop_all`), então os dados sobrevivem a redeploy/restart.
 
@@ -127,8 +128,9 @@ R1–R10 documentadas na 1AV e revisadas + R11–R16 novas da 2AV (certificado t
 - Execução da suíte com `pytest -v`: [`docs/evidencias/pytest-v.txt`](docs/evidencias/pytest-v.txt) (2AV) e [`docs/evidencias/pytest-v-3av.txt`](docs/evidencias/pytest-v-3av.txt) (52 testes).
 - Swagger/OpenAPI final, com esquemas de erro e autenticação: [`docs/evidencias/swagger-3av.txt`](docs/evidencias/swagger-3av.txt).
 - Matriz de permissões com os endpoints protegidos: [`app/matriz_permissoes.md`](app/matriz_permissoes.md).
-- Relatórios: [evolução 1AV → 2AV](docs/relatorio_evolucao_2av.md) e [terceira entrega](docs/relatorio_terceira_entrega.md).
-- Repositório: <https://github.com/thiciriano/api_certificados_esuda> · branch `feat/auth-jwt` · PR #1 · tags `v1.0.0` (2AV) e `v1.1.0` (3AV).
+- Relatórios: [evolução 1AV → 2AV](docs/relatorio_evolucao_2av.md), [terceira entrega](docs/relatorio_terceira_entrega.md) e [entrega final](docs/relatorio_final.md).
+- Apresentação/defesa: [roteiro Markdown](docs/apresentacao_final.md), [PPTX](docs/apresentacao/apresentacao_final.pptx) e [PDF](docs/apresentacao/apresentacao_final.pdf).
+- Repositório: <https://github.com/thiciriano/api_certificados_esuda> · PR #1 · tags `v1.0.0` (2AV), `v1.1.0` (3AV) e `v2.0.0` (entrega final).
 
 ## Integrantes e responsabilidades
 
