@@ -6,7 +6,12 @@ Titulo: Esuda Certificados
 Versao: 2.0.0
 
 --- Esquema de seguranca (botao Authorize) ---
-OAuth2PasswordBearer: {'type': 'oauth2', 'flows': {'password': {'scopes': {}, 'tokenUrl': 'api/v1/auth/login'}}}
+OAuth2PasswordBearer: oauth2 | tokenUrl=api/v1/auth/login
+Descricao: Autenticação JWT com OAuth2 Password Flow. Clique em **Authorize** e informe: - **username**: e-mail de demonstração ( por exemplo `victor@esuda.edu.br` ) - **password**: `senhaSegura123` O token é gerado por `POST /api/v1/auth/login` e expira conforme `ACCESS_TOKEN_EXPIRE_MINUTES`. As credenciais acima são apenas do ambiente temporário de apresentação.
+
+--- Exemplos de login (Try it out e botao Authorize) ---
+organizador_demo: {'username': 'victor@esuda.edu.br', 'password': 'senhaSegura123'}
+participante_demo: {'username': 'thiago@esuda.edu.br', 'password': 'senhaSegura123'}
 
 --- Envelope de erro padronizado (RespostaErro) ---
 Propriedades: detail, error, message, success

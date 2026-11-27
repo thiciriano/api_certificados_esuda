@@ -122,6 +122,28 @@ R1–R10 documentadas na 1AV e revisadas + R11–R16 novas da 2AV (certificado t
 - **Banco:** Postgres persistente no Render (criado pelo `render.yaml`); `DATABASE_URL`, `JWT_SECRET_KEY` etc. são variáveis de ambiente do serviço — nenhum segredo versionado.
 - O boot roda `create_all()` (sem `drop_all`), então os dados sobrevivem a redeploy/restart.
 
+## Demonstração rápida (seed + Swagger Authorize)
+
+O [`seed.py`](seed.py) cria/atualiza usuários, categoria, evento, inscrição e certificado de forma idempotente — pode rodar quantas vezes quiser antes da apresentação:
+
+```bash
+# API publicada (ambiente temporário de apresentação)
+BASE_URL=https://api-certificados-esuda.onrender.com/api/v1 python seed.py
+
+# Local (com a API rodando em localhost:8000)
+python seed.py
+```
+
+Credenciais criadas pelo seed (também disponíveis como exemplos no Swagger):
+
+| Perfil | username (e-mail) | password |
+| ------ | ----------------- | -------- |
+| Organizador | `victor@esuda.edu.br` | `senhaSegura123` |
+| Participante | `thiago@esuda.edu.br` | `senhaSegura123` |
+| Admin | `admin@esuda.edu.br` | definida por `SENHA_ADMIN` (a API não permite auto-promoção a admin — R14) |
+
+Para autorizar no Swagger: abra **[ /docs ](https://api-certificados-esuda.onrender.com/docs)**, clique em **Authorize**, informe `username` = e-mail e `password` = senha da tabela e confirme. O token fica salvo no navegador (`persistAuthorization`) e passa a ser enviado nas rotas protegidas. Os exemplos de payload de cada endpoint e do próprio login estão no OpenAPI ([evidência](docs/evidencias/swagger-3av.txt)).
+
 ## Evidências e versionamento
 
 - Requisições reais com acessos permitidos e negados (200/201/401/403): [`docs/evidencias/requisicoes-acesso.txt`](docs/evidencias/requisicoes-acesso.txt).

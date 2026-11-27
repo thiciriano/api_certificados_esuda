@@ -7,11 +7,13 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.permissions import PERFIS
 from app.core.security import decode_access_token
+from app.core.swagger_presets import DESCRICAO_AUTHORIZE
 from app.database.database import get_db
 from app.models.models import Usuario
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/auth/login".lstrip("/"),
+    description=DESCRICAO_AUTHORIZE,
 )
 # mesmo esquema mas sem exigir token (pra rotas que mudam comportamento se tiver logado)
 oauth2_optional = OAuth2PasswordBearer(

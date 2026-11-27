@@ -1,5 +1,36 @@
 """exemplos pra preencher no swagger sem digitar na mao"""
 
+# credenciais de demonstracao do ambiente temporario de apresentacao.
+# servem tanto para "Try it out" em /auth/login quanto para o botao Authorize:
+# no dialogo do Swagger, use username = e-mail e password = senha abaixo.
+EXEMPLO_LOGIN = {
+    "organizador_demo": {
+        "summary": "Organizador (demo)",
+        "description": "Credencial de apresentação — pode criar eventos e emitir certificados",
+        "value": {
+            "username": "victor@esuda.edu.br",
+            "password": "senhaSegura123",
+        },
+    },
+    "participante_demo": {
+        "summary": "Participante (demo)",
+        "description": "Credencial de apresentação — inscreve-se e vê o próprio certificado",
+        "value": {
+            "username": "thiago@esuda.edu.br",
+            "password": "senhaSegura123",
+        },
+    },
+}
+
+DESCRICAO_AUTHORIZE = (
+    "Autenticação JWT com OAuth2 Password Flow. Clique em **Authorize** e informe:\n\n"
+    "- **username**: e-mail de demonstração ( por exemplo `victor@esuda.edu.br` )\n"
+    "- **password**: `senhaSegura123`\n\n"
+    "O token é gerado por `POST /api/v1/auth/login` e expira conforme "
+    "`ACCESS_TOKEN_EXPIRE_MINUTES`. As credenciais acima são apenas do ambiente "
+    "temporário de apresentação."
+)
+
 EXEMPLO_USUARIO = {
     "usuario_aluno": {
         "summary": "🎓 Aluno (Participante)",

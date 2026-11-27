@@ -35,6 +35,8 @@ app = FastAPI(
         f"`{settings.API_V1_STR}/auth/login`) para obter o token e acessar as rotas protegidas."
     ),
     openapi_tags=tags_metadata,
+    # mantem o token autorizado no Swagger mesmo depois de atualizar a pagina
+    swagger_ui_parameters={"persistAuthorization": True},
 )
 
 if settings.BACKEND_CORS_ORIGINS:
