@@ -1,0 +1,49 @@
+# Evidencia do Swagger/OpenAPI - Esuda Certificados (3AV)
+
+Fonte: GET /openapi.json da aplicacao final (banco SQLite isolado, sem credenciais reais).
+
+Titulo: Esuda Certificados
+Versao: 2.0.0
+
+--- Esquema de seguranca (botao Authorize) ---
+OAuth2PasswordBearer: {'type': 'oauth2', 'flows': {'password': {'scopes': {}, 'tokenUrl': 'api/v1/auth/login'}}}
+
+--- Envelope de erro padronizado (RespostaErro) ---
+Propriedades: detail, error, message, success
+Obrigatorias: error, message
+
+--- Respostas de erro documentadas em GET /api/v1/usuarios/me ---
+200: Successful Response -> #/components/schemas/RespostaUsuario
+400: Regra de negócio ou requisição inválida -> #/components/schemas/RespostaErro
+401: Token ausente, inválido ou expirado -> #/components/schemas/RespostaErro
+403: Usuário autenticado sem permissão -> #/components/schemas/RespostaErro
+404: Recurso não encontrado -> #/components/schemas/RespostaErro
+422: Erro de validação dos dados enviados -> #/components/schemas/RespostaErro
+500: Erro interno do servidor -> #/components/schemas/RespostaErro
+
+--- Endpoints de autenticacao ---
+POST   /api/v1/auth/login           tags=['Autenticação'] security=nao
+GET    /api/v1/usuarios             tags=['Usuários'] security=sim
+POST   /api/v1/usuarios             tags=['Usuários'] security=sim
+GET    /api/v1/usuarios/me          tags=['Usuários'] security=sim
+
+--- Operacoes protegidas por JWT (19) ---
+  - GET /api/v1/usuarios
+  - POST /api/v1/usuarios
+  - GET /api/v1/usuarios/me
+  - PUT /api/v1/usuarios/{usuario_id}
+  - DELETE /api/v1/usuarios/{usuario_id}
+  - POST /api/v1/eventos
+  - PUT /api/v1/eventos/{evento_id}
+  - DELETE /api/v1/eventos/{evento_id}
+  - GET /api/v1/inscricoes
+  - POST /api/v1/inscricoes
+  - PUT /api/v1/inscricoes/{inscricao_id}
+  - DELETE /api/v1/inscricoes/{inscricao_id}
+  - GET /api/v1/certificados
+  - POST /api/v1/certificados
+  - PUT /api/v1/certificados/{cert_id}
+  - DELETE /api/v1/certificados/{cert_id}
+  - POST /api/v1/categorias
+  - PUT /api/v1/categorias/{categoria_id}
+  - DELETE /api/v1/categorias/{categoria_id}

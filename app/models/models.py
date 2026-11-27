@@ -1,4 +1,6 @@
 """tabelas do banco"""
+from datetime import date
+
 from sqlalchemy import Column, Integer, String, Date, Boolean, Text, ForeignKey, Time
 from sqlalchemy.orm import relationship
 from app.database.database import Base
@@ -10,10 +12,10 @@ class Usuario(Base):
     id = Column(Integer, primary_key=True, index=True)
     nome = Column(String(100), nullable=False)
     email = Column(String(255), unique=True, nullable=False, index=True)
-    senha = Column(String(255), nullable=False)
-    papel = Column(String(50), nullable=False)  # 'participante' ou 'organizador'
+    senha = Column(String(255), nullable=False)  # guarda o hash bcrypt, nunca a senha pura
+    papel = Column(String(50), nullable=False)  # 'participante', 'organizador' ou 'admin'
     is_active = Column(Boolean, default=True)
-    created_at = Column(Date, nullable=True)
+    created_at = Column(Date, nullable=True, default=date.today)
 
     inscricoes = relationship("Inscrição", back_populates="usuario")
     certificados = relationship("Certificado", back_populates="usuario")
@@ -75,14 +77,4 @@ class Certificado(Base):
     usuario = relationship("Usuario", back_populates="certificados")
     inscricao = relationship("Inscrição", back_populates="certificado")
 
-# regras de negocio que a api precisa seguir
-# R1: Um usuário não pode se inscrever duas vezes no mesmo evento
-# R2: Um evento não pode ultrapassar a capacidade máxima
-# R3: Apenas administradores podem excluir eventos
-# R4: Um participante só pode cancelar a própria inscrição
-# R5: Não é permitido cadastrar evento com data passada
-# R6: Um certificado só pode ser emitido para participante inscrito
-# R7: E-mail deve ser único e válido
-# R8: Senha deve ter no mínimo 6 caracteres
-# R9: Título do evento é obrigatório e deve ser único
-# R10: Certificado só pode ser emitido após inscrição ativa
+# as regras de negocio vigentes (R1-R16) estao documentadas em app/regras_negocios.md

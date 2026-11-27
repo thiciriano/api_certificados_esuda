@@ -1,14 +1,14 @@
 """conexao com o banco"""
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 from app.core.config import settings
 
-# sqlite pq nao precisa instalar postgres
+# sqlite local por padrao (nao precisa instalar nada); postgres no producao via DATABASE_URL
 engine = create_engine(
-    "sqlite:///./esuda_certificados.db",
-    pool_pre_ping=True,
-    echo=True,
+    settings.DATABASE_URL,
+    pool_pre_ping=True,  # testa a conexao antes de usar (cai bem no render)
+    echo=settings.DB_ECHO,
+    connect_args={"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {},
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -22,4 +22,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
