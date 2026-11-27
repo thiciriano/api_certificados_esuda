@@ -27,7 +27,7 @@ GET    /api/v1/usuarios             tags=['Usuários'] security=sim
 POST   /api/v1/usuarios             tags=['Usuários'] security=sim
 GET    /api/v1/usuarios/me          tags=['Usuários'] security=sim
 
---- Operacoes protegidas por JWT (19) ---
+--- Operacoes protegidas por JWT (20) ---
   - GET /api/v1/usuarios
   - POST /api/v1/usuarios
   - GET /api/v1/usuarios/me
@@ -42,6 +42,7 @@ GET    /api/v1/usuarios/me          tags=['Usuários'] security=sim
   - DELETE /api/v1/inscricoes/{inscricao_id}
   - GET /api/v1/certificados
   - POST /api/v1/certificados
+  - GET /api/v1/certificados/{cert_id}
   - PUT /api/v1/certificados/{cert_id}
   - DELETE /api/v1/certificados/{cert_id}
   - POST /api/v1/categorias

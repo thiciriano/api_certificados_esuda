@@ -126,6 +126,33 @@ def test_fluxo_inscricao_e_certificado(client):
     r = client.get("/api/v1/certificados", headers=client.participante_headers)
     assert r.status_code == 200
     assert len(r.json()) == 1
+    cert_id = r.json()[0]["id"]
+
+    # GET por id (CRUD da 1AV) continua disponivel, respeitando o escopo
+    r = client.get(f"/api/v1/certificados/{cert_id}", headers=client.participante_headers)
+    assert r.status_code == 200
+    assert r.json()["id"] == cert_id
+
+    r = client.get(f"/api/v1/certificados/{cert_id}", headers=client.organizador_headers)
+    assert r.status_code == 200
+
+    # outro participante nao enxerga certificado alheio
+    client.post(
+        "/api/v1/usuarios",
+        json={
+            "nome": "Outro Participante",
+            "email": "outro@esuda.edu.br",
+            "senha": "outroSeguro123",
+            "papel": "participante",
+        },
+    )
+    login = client.post(
+        "/api/v1/auth/login",
+        data={"username": "outro@esuda.edu.br", "password": "outroSeguro123"},
+    )
+    headers_outro = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    r = client.get(f"/api/v1/certificados/{cert_id}", headers=headers_outro)
+    assert r.status_code == 404
 
 
 def test_crud_de_categoria(client):

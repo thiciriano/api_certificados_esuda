@@ -1,4 +1,4 @@
-# Evidência de execução da suíte — pytest -v (terceira entrega)
+# Evidência de execução da suíte — pytest -v (versão final)
 # Comando executado na raiz do projeto: pytest -v
 # Ambiente: Linux / Python 3.14.4 / pytest 9.2.0 (dependências de requirements.txt)
 # Saída integral abaixo (stdout + stderr), sem edições.
@@ -71,4 +71,4 @@ tests/test_validacoes.py::test_status_de_inscricao_invalido_retorna_422 PASSED [
     from starlette.testclient import TestClient as TestClient  # noqa
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-======================== 52 passed, 1 warning in 59.01s ========================
+=================== 52 passed, 1 warning in 60.26s (0:01:00) ===================

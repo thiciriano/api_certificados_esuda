@@ -80,6 +80,27 @@ async def listar_certificados(
     return certificados_visiveis(db, current_user)
 
 
+@router.get(
+    "/{cert_id}",
+    response_model=CertificadoOut,
+    summary="Buscar certificado",
+    description=(
+        "Retorna um certificado específico desde que ele esteja no escopo do perfil: "
+        "participante vê o próprio, organizador os dos eventos que criou e admin todos."
+    ),
+)
+async def buscar_certificado(
+    cert_id: int,
+    current_user: Usuario = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+) -> CertificadoOut:
+    # mesma regra de escopo da listagem; 404 evita vazar a existência de certificado alheio
+    for certificado in certificados_visiveis(db, current_user):
+        if certificado.id == cert_id:
+            return certificado
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificado não encontrado")
+
+
 @router.put(
     "/{cert_id}",
     response_model=RespostaCertificado,
