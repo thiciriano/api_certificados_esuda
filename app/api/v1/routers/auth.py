@@ -5,6 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, verificar_senha
+from app.core.swagger_presets import EXEMPLO_LOGIN
 from app.database.database import get_db
 from app.models.models import Usuario
 from app.schemas.schemas import RespostaToken
@@ -20,8 +21,19 @@ router = APIRouter(prefix="/auth", tags=["Autenticação"])
     description=(
         "Autentica por e-mail e senha e devolve o token JWT. "
         "No campo **username** vai o e-mail. O token expira em "
-        "ACCESS_TOKEN_EXPIRE_MINUTES e deve ser enviado como `Authorization: Bearer <token>`."
+        "ACCESS_TOKEN_EXPIRE_MINUTES e deve ser enviado como `Authorization: Bearer <token>`. "
+        "Para usar o botão **Authorize** do Swagger: informe `username` (e-mail) e `password` "
+        "com as credenciais de demonstração mostradas nos exemplos; depois é só usar "
+        "qualquer endpoint protegido."
     ),
+    # exemplos precisam ir no media type de formulario, nao em application/json
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/x-www-form-urlencoded": {"examples": EXEMPLO_LOGIN}
+            }
+        }
+    },
 )
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),

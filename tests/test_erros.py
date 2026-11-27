@@ -51,4 +51,13 @@ def test_openapi_documenta_erros_e_autenticacao(client: TestClient):
         schema = respostas[status_code]["content"]["application/json"]["schema"]
         assert schema["$ref"].endswith("RespostaErro")
 
-    assert "OAuth2PasswordBearer" in spec["components"]["securitySchemes"]
+    security = spec["components"]["securitySchemes"]
+    assert "OAuth2PasswordBearer" in security
+    descricao = security["OAuth2PasswordBearer"]["description"]
+    assert "Authorize" in descricao and "senhaSegura123" in descricao
+
+    # exemplos de login precisam estar no media type de formulario, senao nao aparecem no Swagger
+    login = spec["paths"]["/api/v1/auth/login"]["post"]["requestBody"]["content"]
+    exemplos = login["application/x-www-form-urlencoded"]["examples"]
+    assert set(exemplos) >= {"organizador_demo", "participante_demo"}
+    assert exemplos["organizador_demo"]["value"]["username"] == "victor@esuda.edu.br"
