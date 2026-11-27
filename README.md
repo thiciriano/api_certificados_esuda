@@ -130,7 +130,7 @@ R1–R10 documentadas na 1AV e revisadas + R11–R16 novas da 2AV (certificado t
 - Matriz de permissões com os endpoints protegidos: [`app/matriz_permissoes.md`](app/matriz_permissoes.md).
 - Relatórios: [evolução 1AV → 2AV](docs/relatorio_evolucao_2av.md), [terceira entrega](docs/relatorio_terceira_entrega.md) e [entrega final](docs/relatorio_final.md).
 - Apresentação/defesa: [roteiro Markdown](docs/apresentacao_final.md), [PPTX](docs/apresentacao/apresentacao_final.pptx) e [PDF](docs/apresentacao/apresentacao_final.pdf).
-- Repositório: <https://github.com/thiciriano/api_certificados_esuda> · PR #1 · tags `v1.0.0` (2AV), `v1.1.0` (3AV) e `v2.0.0` (entrega final).
+- Repositório: <https://github.com/thiciriano/api_certificados_esuda> · [PR #1](https://github.com/thiciriano/api_certificados_esuda/pull/1) (3ª entrega) e [PR #2](https://github.com/thiciriano/api_certificados_esuda/pull/2) (entrega final) · tags `v1.0.0` (2AV), `v1.1.0` (3AV) e `v2.0.0` (entrega final).
 
 ## Integrantes e responsabilidades
 

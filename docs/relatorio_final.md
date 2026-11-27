@@ -15,7 +15,8 @@ Entrega final consolidada da API REST de eventos acadêmicos, inscrições e cer
 | Item | Local |
 | ---- | ----- |
 | Código-fonte completo | GitHub, branch `main` (PR #1 mesclado) |
-| Histórico de commits | `git log` — desde `b923b98` (1AV) até `8495bd3` (final) |
+| Histórico de commits | `git log` — desde `b923b98` (1AV) até a entrega final |
+| Pull requests | [PR #1](https://github.com/thiciriano/api_certificados_esuda/pull/1) (3ª entrega) e [PR #2](https://github.com/thiciriano/api_certificados_esuda/pull/2) (entrega final) |
 | Tags | `v1.0.0` (2AV), `v1.1.0` (3AV), `v2.0.0` (final) |
 | README técnico | [`README.md`](../README.md) |
 | API publicada | <https://api-certificados-esuda.onrender.com> · `/health` responde 200 |
