@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.core.errors import registrar_handlers
 from app.database.database import Base, engine
 from app.api.v1.api import api_router
 
@@ -44,6 +45,9 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+# erro 400/401/403/404/422/500 sempre no mesmo formato
+registrar_handlers(app)
 
 app.include_router(api_router)
 

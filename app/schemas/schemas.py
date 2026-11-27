@@ -132,9 +132,12 @@ class RespostaSucesso(BaseModel):
     data: Optional[object] = None
 
 class RespostaErro(BaseModel):
+    """envelope unico de erro devolvido pelos handlers de app/core/errors.py."""
+
     success: bool = False
     error: str
     message: str
+    detail: Optional[object] = None
 
 # envelopes tipados (o data mostra o schema certo no swagger)
 class RespostaUsuario(RespostaSucesso):
